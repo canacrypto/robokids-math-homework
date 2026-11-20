@@ -122,7 +122,82 @@ MathKit.bank("L4A_1_1", {
       B: { q: "A step counter shows 89 995 steps. After 7 more steps, what does it show?", ans: 90002,
            explain: "89 995 + 5 = 90 000. Then 2 more steps → 90 002." },
       C: { q: "A website has 9 998 visits. Then 4 more people visit. How many visits now?", ans: 10002,
-           explain: "9 998 + 2 = 10 000. Then 2 more → 10 002." } }
+           explain: "9 998 + 2 = 10 000. Then 2 more → 10 002." } },
+
+    { id: "H11", skill: "Value in the hundred thousands place",
+      hint: "A six-digit number's first digit is in the hundred thousands place.",
+      A: { q: "What is the value of the digit 7 in 728 405?", ans: 700000, explain: "The 7 is in the hundred thousands place: 7 × 100 000 = 700 000." },
+      B: { q: "What is the value of the digit 3 in 395 120?", ans: 300000, explain: "The 3 is in the hundred thousands place: 3 × 100 000 = 300 000." },
+      C: { q: "What is the value of the digit 9 in 906 000?", ans: 900000, explain: "The 9 is in the hundred thousands place: 9 × 100 000 = 900 000." } },
+
+    { id: "H12", skill: "Choose the expanded form",
+      hint: "Find each digit's place, then write its value. Skip the zeros.",
+      A: { q: "Which is the expanded form of 450 306?",
+           options: ["400 000 + 50 000 + 3 000 + 6", "400 000 + 50 000 + 300 + 6", "400 000 + 5 000 + 300 + 6", "40 000 + 5 000 + 300 + 6"], ans: 1,
+           explain: "4 hundred thousands, 5 ten thousands, 0 thousands, 3 hundreds, 0 tens, 6 ones → 400 000 + 50 000 + 300 + 6." },
+      B: { q: "Which is the expanded form of 208 070?",
+           options: ["200 000 + 8 000 + 70", "200 000 + 80 000 + 70", "200 000 + 8 000 + 700", "20 000 + 8 000 + 70"], ans: 0,
+           explain: "2 hundred thousands, 0 ten thousands, 8 thousands, 0 hundreds, 7 tens, 0 ones → 200 000 + 8 000 + 70." },
+      C: { q: "Which is the expanded form of 61 540?",
+           options: ["6 000 + 1 000 + 500 + 40", "60 000 + 1 000 + 500 + 4", "60 000 + 10 000 + 500 + 40", "60 000 + 1 000 + 500 + 40"], ans: 3,
+           explain: "6 ten thousands, 1 thousand, 5 hundreds, 4 tens → 60 000 + 1 000 + 500 + 40." } },
+
+    { id: "H13", skill: "1 000 less (regrouping)",
+      hint: "Take 1 from the thousands digit. If it's 0, borrow from the place to its left.",
+      A: { q: "What number is 1 000 less than 340 250?", ans: 339250, explain: "340 250 has 0 thousands, so take 1 ten thousand = 10 thousands. 40 thousands − 1 thousand = 39 thousands → 339 250." },
+      B: { q: "What number is 1 000 less than 600 400?", ans: 599400, explain: "600 thousands − 1 thousand = 599 thousands, so 600 400 → 599 400." },
+      C: { q: "What number is 1 000 less than 75 300?", ans: 74300, explain: "The thousands digit goes from 5 to 4: 75 300 → 74 300." } },
+
+    { id: "H14", skill: "100 000 more",
+      hint: "Only the hundred thousands digit changes.",
+      A: { q: "What number is 100 000 more than 254 300?", ans: 354300, explain: "The hundred thousands digit goes from 2 to 3: 254 300 → 354 300." },
+      B: { q: "What number is 100 000 more than 899 999?", ans: 999999, explain: "The hundred thousands digit goes from 8 to 9: 899 999 → 999 999, the greatest six-digit number." },
+      C: { q: "What number is 100 000 more than 40 000?", ans: 140000, explain: "40 000 has 0 hundred thousands. Add 1: 140 000." } },
+
+    { id: "H15", skill: "Find the number from clues",
+      hint: "Check each option one place at a time.",
+      A: { q: "Which number has a 6 in the ten thousands place and a 3 in the hundreds place?",
+           options: ["630 000", "163 058", "160 385", "306 600"], ans: 2,
+           explain: "160 385: ten thousands = 6 and hundreds = 3. 163 058 has 0 hundreds, 630 000 has 3 ten thousands, and 306 600 has 0 ten thousands." },
+      B: { q: "Which number has a 4 in the hundred thousands place and a 7 in the tens place?",
+           options: ["407 070", "470 000", "47 070", "704 700"], ans: 0,
+           explain: "407 070: hundred thousands = 4 and tens = 7. 470 000 has 0 tens, 47 070 has no hundred thousands, and 704 700 starts with 7." },
+      C: { q: "Which number has an 8 in the thousands place?",
+           options: ["80 000", "800", "18 000", "180"], ans: 2,
+           explain: "In 18 000 the 8 is the fourth digit from the right: the thousands place." } },
+
+    { id: "H16", skill: "Build a number from groups",
+      hint: "Find the value of each group, then add them in a place-value chart.",
+      A: { q: "A factory packs 3 crates of 100 000 stickers, 4 boxes of 1 000 stickers and 6 single stickers. How many stickers is that?", ans: 304006,
+           explain: "300 000 + 4 000 + 6 = 304 006. The ten thousands, hundreds and tens places are empty, so they get 0s." },
+      B: { q: "A craft store has 2 crates of 100 000 beads, 7 crates of 10 000 beads and 5 packs of 10 beads. How many beads is that?", ans: 270050,
+           explain: "200 000 + 70 000 + 50 = 270 050." },
+      C: { q: "A library has 4 boxes of 1 000 bookmarks and 3 boxes of 100 bookmarks. How many bookmarks is that?", ans: 4300,
+           explain: "4 000 + 300 = 4 300." } },
+
+    { id: "H17", skill: "Regrouping place values",
+      hint: "23 ten thousands = 23 × 10 000. Work out each part, then add.",
+      A: { q: "Write as a number: 23 ten thousands + 4 thousands", ans: 234000, explain: "23 ten thousands = 230 000, and 4 thousands = 4 000. 230 000 + 4 000 = 234 000." },
+      B: { q: "Write as a number: 15 thousands + 6 hundreds", ans: 15600, explain: "15 thousands = 15 000, and 6 hundreds = 600. 15 000 + 600 = 15 600." },
+      C: { q: "Write as a number: 12 hundreds", ans: 1200, explain: "12 × 100 = 1 200." } },
+
+    { id: "H18", skill: "How many times greater?",
+      hint: "Count how many places apart the two digits are. Each place is ×10.",
+      A: { q: "The value of the 4 in 400 000 is how many times the value of the 4 in 4 000?", ans: 100, explain: "400 000 ÷ 4 000 = 100. The digits are two places apart: 10 × 10 = 100." },
+      B: { q: "The value of the 6 in 600 000 is how many times the value of the 6 in 600?", ans: 1000, explain: "They're three places apart: 10 × 10 × 10 = 1 000." },
+      C: { q: "The value of the 2 in 20 000 is how many times the value of the 2 in 2 000?", ans: 10, explain: "Neighbouring places: 20 000 = 10 × 2 000." } },
+
+    { id: "H19", skill: "Halfway between",
+      hint: "Find the number exactly in the middle. It's the same distance from both ends.",
+      A: { q: "What number is exactly halfway between 300 000 and 400 000?", ans: 350000, explain: "The gap is 100 000. Half of that is 50 000, so 300 000 + 50 000 = 350 000." },
+      B: { q: "What number is exactly halfway between 120 000 and 140 000?", ans: 130000, explain: "The gap is 20 000. Half is 10 000, so 120 000 + 10 000 = 130 000." },
+      C: { q: "What number is exactly halfway between 5 000 and 6 000?", ans: 5500, explain: "The gap is 1 000. Half is 500, so 5 000 + 500 = 5 500." } },
+
+    { id: "H20", skill: "Continue the pattern",
+      hint: "How much does it go up each time? Watch for regrouping.",
+      A: { q: "Continue the pattern: 465 000, 475 000, 485 000, ___", ans: 495000, explain: "It goes up 10 000 each time: 485 000 + 10 000 = 495 000." },
+      B: { q: "Continue the pattern: 870 500, 880 500, 890 500, ___", ans: 900500, explain: "It goes up 10 000 each time. 89 ten thousands + 1 = 90 ten thousands, so the next number is 900 500." },
+      C: { q: "Continue the pattern: 20 000, 30 000, 40 000, ___", ans: 50000, explain: "It goes up 10 000 each time: 50 000." } }
   ]
 });
 

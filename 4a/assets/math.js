@@ -224,7 +224,7 @@
       '<div class="title-eyebrow">' + esc(bank.program) + " · Session " + bank.session + ' · Homework</div>' +
       "<h1>" + esc(bank.title) + "</h1>" +
       "<p>" + items.length + " questions. Press <b>Check</b> after each one. If you're wrong, you get a hint and one more try. When you're done, press <b>Finish</b> and send your result code to your teacher.</p>" +
-      '<div class="meta-row"><span class="meta-chip">~25 minutes</span><span class="meta-chip">' + items.length + ' questions</span><span class="meta-chip">Calculator: no</span></div>'));
+      '<div class="meta-row"><span class="meta-chip">~' + (items.length * 2) + ' minutes</span><span class="meta-chip">' + items.length + ' questions</span><span class="meta-chip">Calculator: no</span></div>'));
 
     var nameCard = el("div", "card", '<h3 class="card-title">Your name</h3><p style="margin:0 0 10px;color:var(--ink-soft)">It goes into your result code so your teacher knows it&#39;s you.</p>');
     var name = el("input", "name-input"); name.placeholder = "First name"; name.value = store("mk-name") || "";
@@ -522,6 +522,93 @@
     host.appendChild(wrap);
   }
 
+
+  /* ---------- OPENING QUIZ INSIDE THE LESSON DECK ----------
+     Slides (generated at build time):
+       <div data-dq-start="Q4A_1_1" data-minutes="10"></div>   name + Start
+       <div data-dq-q="Q4A_1_1" data-i="0"></div>               one question per slide
+       <div data-dq-submit="Q4A_1_1"></div>                     answered count, Submit, score + result code */
+  function deckQuizzes() {
+    var starts = document.querySelectorAll("[data-dq-start]");
+    starts.forEach(function (startHost) {
+      var id = startHost.dataset.dqStart, quiz = window.MATH_QUIZZES[id];
+      if (!quiz) return;
+      var minutes = +(startHost.dataset.minutes || quiz.minutes || 10);
+      var items = quiz.items.map(MK.resolve);
+      var slideOf = function (node) { var s = node.closest(".slide"); return s ? +s.dataset.slide : 0; };
+      var go = function (n) { if (typeof window.showSlide === "function") window.showSlide(n); };
+      document.body.classList.add("mock-waiting");
+
+      // question slides
+      var qs = [];
+      document.querySelectorAll('[data-dq-q="' + id + '"]').forEach(function (h) {
+        var i = +h.dataset.i, q = buildQ(items[i], i + 1, "quiz");
+        h.appendChild(q); qs[i] = q;
+      });
+      // start slide
+      var name = el("input", "name-input"); name.placeholder = "First name"; name.value = store("mk-name") || "";
+      var startBtn = el("button", "btn teal", "Start quiz ▸");
+      var row = el("div", ""); row.style.marginTop = "14px"; row.appendChild(name); row.appendChild(startBtn);
+      startHost.appendChild(row);
+      // submit slide
+      var subHost = document.querySelector('[data-dq-submit="' + id + '"]');
+      var answered = el("p", "section-lede", "");
+      var subBtn = el("button", "btn", "Submit quiz");
+      var score = el("div", "score-card");
+      subHost.appendChild(answered); subHost.appendChild(subBtn); subHost.appendChild(score);
+
+      var timer = el("div", "timer"); document.body.appendChild(timer);
+      var left = minutes * 60, tick = null, started = false, done = false;
+      function count() {
+        var n = 0; qs.forEach(function (q) { var v = q._state.value; if (v !== null && v !== "" && v !== undefined) n++; });
+        answered.innerHTML = "You've answered <b>" + n + " of " + qs.length + "</b> questions. Use ◂ Previous to check your answers before you submit.";
+      }
+      qs.forEach(function (q) { q._onChange = count; }); count();
+
+      startBtn.addEventListener("click", function () {
+        if (started) return;
+        if (!name.value.trim()) { name.focus(); name.placeholder = "Please type your name first"; return; }
+        store("mk-name", name.value.trim());
+        started = true; startBtn.disabled = true; name.disabled = true;
+        document.body.classList.remove("mock-waiting");
+        timer.classList.add("show");
+        var draw = function () { var m = Math.floor(left / 60), sec = left % 60; timer.textContent = "⏱ " + m + ":" + (sec < 10 ? "0" : "") + sec; timer.classList.toggle("low", left <= 60); };
+        draw();
+        tick = setInterval(function () { left--; draw(); if (left <= 0) { grade(); go(slideOf(subHost)); } }, 1000);
+        go(slideOf(startHost) + 1);
+      });
+      subBtn.addEventListener("click", function () {
+        if (!started) { go(slideOf(startHost)); return; }
+        grade();
+      });
+
+      function grade() {
+        if (done) return; done = true;
+        clearInterval(tick); timer.classList.remove("show"); subBtn.style.display = "none"; answered.style.display = "none";
+        var right = 0, missed = [];
+        qs.forEach(function (q, i) {
+          var it = q._item, v = q._state.value;
+          var ok = it.options ? v === it.ans : (v != null && isRight(it, v));
+          if (ok) right++; else missed.push(i + 1);
+          q.classList.add(ok ? "is-right" : "is-wrong", "locked");
+          if (it.options) {
+            var opts = q.querySelectorAll(".quiz-option");
+            opts.forEach(function (o) { o.classList.remove("picked"); o.classList.add("locked"); });
+            if (v != null && v !== it.ans) opts[v].classList.add("wrong");
+            opts[it.ans].classList.add("correct");
+          } else { q._input.disabled = true; q._input.classList.add(ok ? "ok" : "no"); }
+          q._fb.className = ok ? "mfb ok" : "mfb reveal";
+          q._fb.innerHTML = (ok ? "<b>✓ Correct.</b>" : "<b>✗ The answer is " + answerText(it) + ".</b>") + (it.explain ? '<div class="why">' + MK.fmt(it.explain) + "</div>" : "");
+        });
+        var c = MK.code(id, name.value.trim(), right, qs.length, missed);
+        score.innerHTML = '<div class="eyebrow">Your score</div><div class="score-big">' + right + " / " + qs.length + "</div>" + bandHTML(right, qs.length) +
+          '<p class="score-sub" style="margin-top:12px">Copy your code into the class chat, then press <b>Next ▸</b> and we\'ll go through the quiz together.</p>';
+        score.appendChild(codeBox(c));
+        score.classList.add("show");
+      }
+    });
+  }
+
   /* ---------- QR code for a page next to this one (e.g. quiz.html) ---------- */
   // <div data-qr-link="quiz.html"></div>  → QR + address of that page
   function qrLink(host) {
@@ -543,6 +630,7 @@
       var p = h.dataset.roundSvg.split(","); h.innerHTML = MK.roundSVG(+p[0], +p[1]).svg;
     });
     document.querySelectorAll("[data-qr-link]").forEach(qrLink);
+    deckQuizzes();
     var mount = document.getElementById("mathRoot");
     if (mount && mount.dataset.homework) MK.homeworkPage(mount.dataset.homework);
     if (mount && mount.dataset.quiz) MK.quizPage(mount.dataset.quiz);
