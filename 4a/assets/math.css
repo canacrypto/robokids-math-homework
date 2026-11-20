@@ -93,3 +93,38 @@
   .card{padding:22px 18px}
   .num-input{width:100%}
 }
+
+/* All Sessions page: one colored circle per session, opening its whole deck */
+.dots{display:flex;flex-wrap:wrap;gap:34px;padding:10px 4px 4px}
+.dot{display:flex;flex-direction:column;align-items:center;gap:10px;width:140px;text-align:center;text-decoration:none;color:var(--navy,#0F1B2D)}
+.dot:hover{text-decoration:none}
+.dot-circle{width:96px;height:96px;border-radius:50%;background:var(--c);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:40px;font-weight:700;box-shadow:0 4px 14px rgba(15,27,45,.15);transition:transform .15s,box-shadow .15s}
+a.dot:hover .dot-circle{transform:translateY(-3px) scale(1.04);box-shadow:0 8px 20px rgba(15,27,45,.22)}
+.dot-title{font-family:Georgia,serif;font-size:15px;font-weight:700;line-height:1.25}
+.dot.soon{cursor:default;color:var(--ink-light,#8A92A0)}
+.big-num u,.rule-card-title u{text-decoration-thickness:4px;text-decoration-color:#DC2626;text-underline-offset:5px}
+.round-mini .diagram{height:104px;width:100%;margin:2px 0 6px}
+.rm-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal,#0EA5A0);margin-top:4px}
+
+/* V-Math widgets */
+.rot-row{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.rot-box{background:#F8FAFC;border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:150px;min-height:150px}
+.rot-arrow{font-size:28px;color:var(--teal,#0EA5A0)}
+.sdk{display:grid;gap:0;border:3px solid var(--navy,#0F1B2D);width:max-content;margin:6px 0 4px}
+.sdk-cell{width:46px;height:46px;border:1px solid #94A3B8;text-align:center;font-family:Georgia,serif;font-size:24px;font-weight:700;color:#2563EB;background:#fff;outline:none}
+.sdk-cell.given{color:var(--navy,#0F1B2D);background:#F1F5F9}
+.sdk-cell.br{border-right:3px solid var(--navy,#0F1B2D)} .sdk-cell.bb{border-bottom:3px solid var(--navy,#0F1B2D)}
+.sdk-cell:focus{background:#FEF9C3} .sdk-cell.bad{background:#FEE2E2;color:var(--red)} .sdk-cell.good{background:#DCFCE7}
+.turtle-wrap{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+.turtle-ta{width:100%;min-height:120px;font-family:"SF Mono",Consolas,monospace;font-size:15px;background:var(--code-bg,#1B2538);color:#C9D1D9;border:none;border-radius:6px;padding:12px 14px;resize:vertical}
+.turtle-canvas svg{width:300px;height:300px;border-radius:8px;display:block}
+.turtle-code{font-family:"SF Mono",Consolas,monospace;background:var(--code-bg,#1B2538);color:#C9D1D9;padding:10px 14px;border-radius:6px;font-size:15px;display:inline-block;margin:4px 0}
+.q-vis svg,.opt-text svg{display:block}
+.vm-flex{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+@media (max-width:760px){.turtle-wrap{grid-template-columns:1fr}}
+
+/* 4A widgets */
+.dec-dot{font-family:Georgia,serif;font-size:48px;font-weight:700;align-self:center;padding-top:30px;color:var(--navy,#0F1B2D)}
+.pv-table.times td{min-width:34px;height:30px;font-size:14px;cursor:pointer;padding:2px}
+.pv-table.times td.on{background:#DBEAFE} .pv-table.times td.hl{background:var(--teal,#0EA5A0);color:#fff}
+.pv-table.times th{font-size:13px}
