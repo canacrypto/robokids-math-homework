@@ -27,7 +27,7 @@
     return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   };
   MK.norm = function (v) {
-    return String(v).replace(/[\s,   ]/g, "").toLowerCase();
+    return String(v).replace(/[\s,   ]/g, "").replace(/[\u2212\u2013\u2014]/g, "-").toLowerCase();
   };
   function el(tag, cls, html) {
     var e = document.createElement(tag);
@@ -89,7 +89,11 @@
 
   function isRight(item, given) {
     if (item.options) return given === item.ans;
-    return given !== "" && MK.norm(given) === MK.norm(item.ans);
+    if (given === "" || given == null) return false;
+    var g = MK.norm(given).replace(/^\$/, ""), t = MK.norm(item.ans).replace(/^\$/, "");
+    if (g === t) return true;
+    var gn = Number(g), tn = Number(t);   // 0.07 = .07 = 0.070, 7 = 7.0
+    return g !== "" && !isNaN(gn) && !isNaN(tn) && Math.abs(gn - tn) < 1e-9;
   }
   function answerText(item) {
     return item.options ? LETTERS[item.ans] + " · " + MK.fmt(item.options[item.ans]) : MK.group(item.ans);
@@ -653,6 +657,8 @@
   function sudoku(host) {
     var n = +host.dataset.n, br = +host.dataset.br, bc = +host.dataset.bc;
     var puz = host.dataset.sudoku.split("").map(Number), sol = host.dataset.solution.split("").map(Number);
+    var cols = host.dataset.colors ? host.dataset.colors.split(",") : null;
+    function tint(c) { c.style.background = c.value && cols ? cols[+c.value - 1] : ""; c.style.color = c.value && cols ? "rgba(0,0,0,.55)" : ""; }
     var grid = el("div", "sdk"); grid.style.gridTemplateColumns = "repeat(" + n + ", 46px)";
     var cells = [];
     puz.forEach(function (v, i) {
@@ -661,6 +667,7 @@
       cell.maxLength = 1; cell.inputMode = "numeric"; cell.value = v || ""; cell.readOnly = !!v;
       if (c % bc === bc - 1 && c !== n - 1) cell.classList.add("br"); if (r % br === br - 1 && r !== n - 1) cell.classList.add("bb");
       cell.addEventListener("input", function () { cell.value = cell.value.replace(new RegExp("[^1-" + n + "]", "g"), ""); cell.classList.remove("bad", "good"); msg.textContent = ""; });
+      if (cols) { tint(cell); cell.addEventListener("input", function () { tint(cell); }); }
       grid.appendChild(cell); cells.push(cell);
     });
     var ctr = el("div", "btn-row"), bC = el("button", "btn teal", "🚩 Check"), bH = el("button", "btn ghost", "Hint"), bS = el("button", "btn ghost", "Show solution"), bR = el("button", "btn ghost", "Clear");
@@ -672,38 +679,96 @@
       cells.forEach(function (c, i) { if (c.readOnly) return; c.classList.remove("bad", "good"); if (!c.value) { empty++; return; } if (+c.value !== sol[i]) { c.classList.add("bad"); bad++; } else c.classList.add("good"); });
       msg.innerHTML = bad ? "<b style='color:var(--red)'>🚩 " + bad + " square" + (bad > 1 ? "s" : "") + " can't be right.</b> Check that row, column and box." : (empty ? "✓ So far so good. " + empty + " left to fill." : "<b style='color:var(--green)'>🎉 Solved! Every row, column and box has 1–" + n + " once.</b>");
     };
-    bH.onclick = function () { for (var i = 0; i < cells.length; i++) if (!cells[i].readOnly && +cells[i].value !== sol[i]) { cells[i].value = sol[i]; cells[i].classList.add("good"); msg.textContent = "One square filled in for you."; return; } };
-    bS.onclick = function () { cells.forEach(function (c, i) { c.value = sol[i]; }); msg.textContent = "Here's the full solution."; };
-    bR.onclick = function () { cells.forEach(function (c) { if (!c.readOnly) { c.value = ""; c.classList.remove("bad", "good"); } }); msg.textContent = ""; };
+    bH.onclick = function () { for (var i = 0; i < cells.length; i++) if (!cells[i].readOnly && +cells[i].value !== sol[i]) { cells[i].value = sol[i]; if (cols) tint(cells[i]); cells[i].classList.add("good"); msg.textContent = "One square filled in for you."; return; } };
+    bS.onclick = function () { cells.forEach(function (c, i) { c.value = sol[i]; if (cols) tint(c); }); msg.textContent = "Here's the full solution."; };
+    bR.onclick = function () { cells.forEach(function (c) { if (!c.readOnly) { c.value = ""; if (cols) tint(c); c.classList.remove("bad", "good"); } }); msg.textContent = ""; };
   }
 
   // Turtle playground: <div data-turtle data-code="repeat 4 [forward 100 right 90]" data-presets='{"Square":"..."}'></div>
+  // Turtle Art colours: 0 red · 10 orange · 20 yellow · 30 lime · 40 green · 50 cyan · 60 blue · 70 purple · 80 magenta · 90 pink
+  MK.taColor = function (v) {
+    var T = ["#E11D2E", "#F97316", "#FACC15", "#A3E635", "#22C55E", "#22D3EE", "#2563EB", "#7C3AED", "#D946EF", "#F472B6"];
+    v = ((Math.round(v) % 100) + 100) % 100; return T[Math.floor(v / 10)];
+  };
   MK.logo = function (src) {
+    src = src.replace(/set\s+color/gi, "setcolor").replace(/set\s+pensize/gi, "setpensize").replace(/start\s+fill/gi, "startfill").replace(/end\s+fill/gi, "endfill").replace(/\(|\)/g, " ");
     var toks = src.replace(/\[/g, " [ ").replace(/\]/g, " ] ").trim().split(/\s+/).filter(Boolean), i = 0;
     function block() {
       var out = [];
       while (i < toks.length && toks[i] !== "]") {
-        var t = toks[i++].toLowerCase(), num = function () { var v = parseFloat(toks[i++]); if (isNaN(v)) throw new Error("A number is missing after \"" + t + "\""); return v; };
+        var t = toks[i++].toLowerCase(), num = function () {
+          var raw = toks[i++], v;
+          if (raw && raw.toLowerCase() === "pensize") {             // pensize - 1, pensize + 2
+            var opx = toks[i], k = parseFloat(toks[i + 1]);
+            if ((opx === "-" || opx === "+") && !isNaN(k)) { i += 2; return { ref: "pensize", d: opx === "-" ? -k : k }; }
+            return { ref: "pensize", d: 0 };
+          }
+          v = parseFloat(raw); if (isNaN(v)) throw new Error("A number is missing after \"" + t + "\""); return v;
+        };
         if (t === "repeat") { var n = num(); if (toks[i++] !== "[") throw new Error("repeat needs [ ]"); var b = block(); i++; out.push({ op: "repeat", n: n, body: b }); }
         else if (t === "forward" || t === "fd") out.push({ op: "fd", v: num() });
-        else if (t === "back" || t === "bk") out.push({ op: "fd", v: -num() });
+        else if (t === "back" || t === "bk") out.push({ op: "fd", v: num(), neg: true });
         else if (t === "right" || t === "rt") out.push({ op: "rt", v: num() });
-        else if (t === "left" || t === "lt") out.push({ op: "rt", v: -num() });
+        else if (t === "left" || t === "lt") out.push({ op: "rt", v: num(), neg: true });
+        else if (t === "arc") out.push({ op: "arc", a: num(), r: num() });
+        else if (t === "setxy") out.push({ op: "setxy", x: num(), y: num() });
+        else if (t === "seth" || t === "setheading") out.push({ op: "seth", v: num() });
+        else if (t === "setcolor" || t === "color") out.push({ op: "color", v: num() });
+        else if (t === "setpensize" || t === "pensize") out.push({ op: "size", v: num() });
+        else if (t === "startfill") out.push({ op: "sf" });
+        else if (t === "endfill") out.push({ op: "ef" });
+        else if (t === "clean" || t === "clear") out.push({ op: "clean" });
         else if (t === "penup" || t === "pu") out.push({ op: "pu" });
         else if (t === "pendown" || t === "pd") out.push({ op: "pd" });
-        else throw new Error("I don't know \"" + t + "\". Try forward, right, left, repeat, penup, pendown.");
+        else throw new Error("I don't know \"" + t + "\". Try forward, back, right, left, repeat, arc, setxy, seth, set color, set pensize, start fill, end fill.");
       }
       return out;
     }
-    var prog = block(), st = { x: 0, y: 0, h: 0, pen: true, segs: [], turned: 0, steps: 0 };
+    var prog = block(), st = { x: 0, y: 0, h: 0, pen: true, segs: [], fills: [], turned: 0, steps: 0, color: "#E11D2E", size: 3, fill: null };
+    function val(v) { return typeof v === "object" ? st.size + v.d : v; }
+    function move(d) {
+      var nx = st.x + d * Math.sin(st.h * Math.PI / 180), ny = st.y - d * Math.cos(st.h * Math.PI / 180);
+      if (st.pen) st.segs.push([st.x, st.y, nx, ny, st.color, Math.max(1, st.size)]);
+      st.x = nx; st.y = ny; if (st.fill) st.fill.pts.push([nx, ny]);
+    }
     (function run(p) { p.forEach(function (c) {
-      if (st.steps++ > 20000) throw new Error("That's too many steps for the turtle.");
-      if (c.op === "repeat") for (var k = 0; k < c.n; k++) run(c.body);
-      else if (c.op === "fd") { var nx = st.x + c.v * Math.sin(st.h * Math.PI / 180), ny = st.y - c.v * Math.cos(st.h * Math.PI / 180); if (st.pen) st.segs.push([st.x, st.y, nx, ny]); st.x = nx; st.y = ny; }
-      else if (c.op === "rt") { st.h += c.v; st.turned += c.v; }
+      if (st.steps++ > 60000) throw new Error("That's too many steps for the turtle.");
+      if (c.op === "repeat") { for (var k = 0; k < val(c.n); k++) run(c.body); }
+      else if (c.op === "fd") move(c.neg ? -val(c.v) : val(c.v));
+      else if (c.op === "rt") { var v = c.neg ? -val(c.v) : val(c.v); st.h += v; st.turned += v; }
+      else if (c.op === "arc") { var A = val(c.a), R = val(c.r), n2 = Math.max(1, Math.round(Math.abs(A))), stp = 2 * Math.PI * R / 360, dir = A < 0 ? -1 : 1;
+        for (var j = 0; j < n2; j++) { st.h += dir * 0.5; move(stp); st.h += dir * 0.5; } st.turned += A; }
+      else if (c.op === "setxy") { var X = val(c.x), Y = -val(c.y); if (st.pen) st.segs.push([st.x, st.y, X, Y, st.color, Math.max(1, st.size)]); st.x = X; st.y = Y; if (st.fill) st.fill.pts.push([X, Y]); }
+      else if (c.op === "seth") st.h = val(c.v);
+      else if (c.op === "color") st.color = MK.taColor(val(c.v));
+      else if (c.op === "size") st.size = Math.max(0, val(c.v));
+      else if (c.op === "sf") st.fill = { color: st.color, pts: [[st.x, st.y]] };
+      else if (c.op === "ef") { if (st.fill) st.fills.push(st.fill); st.fill = null; }
+      else if (c.op === "clean") { st.segs = []; st.fills = []; }
       else if (c.op === "pu") st.pen = false; else if (c.op === "pd") st.pen = true;
     }); })(prog);
     return st;
+  };
+  MK.turtleSVG = function (st, W) {
+    W = W || 300;
+    var xs = [0], ys = [0], pad = 0;
+    st.segs.forEach(function (s) { xs.push(s[0], s[2]); ys.push(s[1], s[3]); pad = Math.max(pad, s[5] / 2); });
+    st.fills.forEach(function (f) { f.pts.forEach(function (p) { xs.push(p[0]); ys.push(p[1]); }); });
+    xs.push(st.x); ys.push(st.y);
+    var mnx = Math.min.apply(null, xs) - pad, mxx = Math.max.apply(null, xs) + pad, mny = Math.min.apply(null, ys) - pad, mxy = Math.max.apply(null, ys) + pad;
+    var span = Math.max(mxx - mnx, mxy - mny, 60), sc = (W - 40) / span, ox = 20 - mnx * sc + ((W - 40) - (mxx - mnx) * sc) / 2, oy = 20 - mny * sc + ((W - 40) - (mxy - mny) * sc) / 2;
+    var P = function (x, y) { return (x * sc + ox).toFixed(1) + "," + (y * sc + oy).toFixed(1); };
+    var h = '<svg viewBox="0,0,' + W + ',' + W + '" xmlns="http://www.w3.org/2000/svg"><rect width="' + W + '" height="' + W + '" fill="#DBEAFE"/>';
+    st.fills.forEach(function (f) { h += '<path d="M' + f.pts.map(function (p) { return P(p[0], p[1]); }).join("L") + 'Z" fill="' + f.color + '"/>'; });
+    var groups = [], cur = null;
+    st.segs.forEach(function (s) {
+      if (!cur || cur.c !== s[4] || cur.w !== s[5]) { cur = { c: s[4], w: s[5], d: "", last: null }; groups.push(cur); }
+      if (!cur.last || Math.abs(cur.last[0] - s[0]) > 1e-6 || Math.abs(cur.last[1] - s[1]) > 1e-6) cur.d += "M" + P(s[0], s[1]);
+      cur.d += "L" + P(s[2], s[3]); cur.last = [s[2], s[3]];
+    });
+    groups.forEach(function (g) { h += '<path d="' + g.d + '" fill="none" stroke="' + g.c + '" stroke-width="' + Math.max(2, g.w * sc).toFixed(1) + '" stroke-linecap="round" stroke-linejoin="round"/>'; });
+    var hx = st.x * sc + ox, hy = st.y * sc + oy;
+    return h + '<g transform="translate(' + hx.toFixed(1) + ',' + hy.toFixed(1) + ') rotate(' + st.h + ')"><path d="M0,-10L7,7L0,3L-7,7Z" fill="#16A34A" stroke="#14532D"/></g></svg>';
   };
   function turtleBox(host) {
     var presets = host.dataset.presets ? JSON.parse(host.dataset.presets) : {};
@@ -718,22 +783,71 @@
     wrap.appendChild(left); wrap.appendChild(right); host.appendChild(wrap);
     function runIt() {
       try {
-        var st = MK.logo(ta.value), xs = [0], ys = [0];
-        st.segs.forEach(function (s) { xs.push(s[0], s[2]); ys.push(s[1], s[3]); });
-        xs.push(st.x); ys.push(st.y);
-        var mnx = Math.min.apply(null, xs), mxx = Math.max.apply(null, xs), mny = Math.min.apply(null, ys), mxy = Math.max.apply(null, ys);
-        var span = Math.max(mxx - mnx, mxy - mny, 60), sc = 260 / span, ox = 20 - mnx * sc + (260 - (mxx - mnx) * sc) / 2, oy = 20 - mny * sc + (260 - (mxy - mny) * sc) / 2;
-        var P = function (x, y) { return (x * sc + ox).toFixed(1) + "," + (y * sc + oy).toFixed(1); };
-        var d = "", last = null;
-        st.segs.forEach(function (s) { if (!last || Math.abs(last[0] - s[0]) > 1e-6 || Math.abs(last[1] - s[1]) > 1e-6) d += "M" + P(s[0], s[1]); d += "L" + P(s[2], s[3]); last = [s[2], s[3]]; });
-        var hx = st.x * sc + ox, hy = st.y * sc + oy;
-        canvas.innerHTML = '<svg viewBox="0,0,300,300" xmlns="http://www.w3.org/2000/svg"><rect width="300" height="300" fill="#DBEAFE"/><path d="' + d + '" fill="none" stroke="#DC2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
-          '<g transform="translate(' + hx.toFixed(1) + ',' + hy.toFixed(1) + ') rotate(' + st.h + ')"><path d="M0,-10L7,7L0,3L-7,7Z" fill="#16A34A" stroke="#14532D"/></g></svg>';
+        var st = MK.logo(ta.value); canvas.innerHTML = MK.turtleSVG(st, 300);
         var back = Math.abs(st.x) < 0.5 && Math.abs(st.y) < 0.5;
         info.innerHTML = "Total turning: <b>" + Math.round(st.turned) + "°</b>" + (back ? " · back at the start ✓" : "");
       } catch (e) { info.innerHTML = "<b style='color:var(--red)'>" + esc(e.message) + "</b>"; }
     }
     go.onclick = runIt; runIt();
+  }
+  // Static turtle picture: <div data-turtle-pic="repeat 5 [forward 150 right 144]" data-w="220"></div>
+  function turtlePic(host) { try { host.innerHTML = MK.turtleSVG(MK.logo(host.dataset.turtlePic), +host.dataset.w || 220); } catch (e) { host.textContent = e.message; } }
+
+  /* ---------- multiple-choice set: several questions on one slide ----------
+     <div data-mcset='[{"q":"…","o":["…"],"a":1,"w":"why"}]' data-start="1" data-code="E4B_MID"></div> */
+  function mcSet(host) {
+    var items = JSON.parse(host.dataset.mcset), start = +host.dataset.start || 1, code = host.dataset.code || "";
+    var grid = el("div", "mcs-grid"), picked = {};
+    items.forEach(function (it, k) {
+      var card = el("div", "mcs-card");
+      card.appendChild(el("div", "mcs-q", "<b>" + (start + k) + ".</b> " + it.q));
+      if (it.v) card.appendChild(el("div", "mcs-vis", it.v));
+      var row = el("div", "mcs-opts"), fb = el("div", "mcs-fb");
+      it.o.forEach(function (t, j) {
+        var b = el("button", "mcs-opt", "<span>" + "ABCDEF"[j] + "</span> " + t);
+        b.onclick = function () {
+          if (picked[k] !== undefined) return;
+          picked[k] = j; b.classList.add(j === it.a ? "right" : "wrong");
+          if (j !== it.a) row.children[it.a].classList.add("right");
+          fb.innerHTML = (j === it.a ? "<b style='color:var(--green)'>✓ Correct.</b> " : "<b style='color:var(--red)'>✗ Not quite.</b> ") + (it.w || "");
+          upd();
+        };
+        row.appendChild(b);
+      });
+      card.appendChild(row); card.appendChild(fb); grid.appendChild(card);
+    });
+    var tally = el("div", "rt-result", "");
+    host.appendChild(grid); host.appendChild(tally);
+    function upd() {
+      var done = Object.keys(picked).length, ok = Object.keys(picked).filter(function (k) { return picked[k] === items[k].a; }).length;
+      tally.innerHTML = "Answered <b>" + done + "</b> of " + items.length + " · correct <b>" + ok + "</b>" +
+        (code && done === items.length ? " · your code: <span class='code-sample'>" + code + " · " + ok + "/" + items.length + " · missed: " +
+          (items.map(function (it, k) { return picked[k] === it.a ? null : start + k; }).filter(function (x) { return x !== null; }).join(", ") || "none") + "</span>" : "");
+    }
+    upd();
+  }
+
+  /* ---------- 24-point game: <div data-twentyfour='[[1,2,3,4],…]' data-sols='["(1+2+3)×4",…]'></div> ---------- */
+  function twentyFour(host) {
+    var sets = JSON.parse(host.dataset.twentyfour), sols = JSON.parse(host.dataset.sols || "[]"), k = 0;
+    var cards = el("div", "tf-cards"), inp = el("input", "name-input"), out = el("div", "rt-result", "");
+    inp.placeholder = "Type an expression, e.g. (8 − 2) × (3 + 1)"; inp.style.width = "100%";
+    var ctr = el("div", "btn-row"), bC = el("button", "btn teal", "Check = 24?"), bN = el("button", "btn ghost", "New cards ▸"), bS = el("button", "btn ghost", "Show a solution");
+    [bC, bN, bS].forEach(function (b) { ctr.appendChild(b); });
+    host.appendChild(cards); host.appendChild(inp); host.appendChild(ctr); host.appendChild(out);
+    function show() { cards.innerHTML = sets[k].map(function (n) { return "<div class='tf-card'>" + n + "</div>"; }).join(""); inp.value = ""; out.textContent = "Use all four numbers once each, with + − × ÷ and brackets, to make 24."; }
+    function check() {
+      var e = inp.value.replace(/×|x|X/g, "*").replace(/÷/g, "/").replace(/−|–/g, "-");
+      if (!/^[0-9+\-*/().\s]+$/.test(e)) { out.innerHTML = "<b style='color:var(--red)'>Only numbers, + − × ÷ and brackets, please.</b>"; return; }
+      var used = (e.match(/\d+/g) || []).map(Number).sort(function (a, b) { return a - b; }), need = sets[k].slice().sort(function (a, b) { return a - b; });
+      if (used.join(",") !== need.join(",")) { out.innerHTML = "<b style='color:var(--red)'>Use each card exactly once:</b> " + need.join(", ") + "."; return; }
+      var v; try { v = Function("return (" + e + ")")(); } catch (er) { out.innerHTML = "<b style='color:var(--red)'>That expression doesn't work. Check your brackets.</b>"; return; }
+      out.innerHTML = Math.abs(v - 24) < 1e-9 ? "<b style='color:var(--green)'>🎉 24! Well done.</b>" : "That makes <b>" + (Math.round(v * 1000) / 1000) + "</b>, not 24. Try again.";
+    }
+    bC.onclick = check; inp.addEventListener("keydown", function (ev) { if (ev.key === "Enter") check(); });
+    bN.onclick = function () { k = (k + 1) % sets.length; show(); };
+    bS.onclick = function () { out.innerHTML = "One way: <b>" + (sols[k] || "?") + " = 24</b>"; };
+    show();
   }
 
 
@@ -833,6 +947,142 @@
     reset();
   }
 
+
+  /* ---------- 4A WIDGETS (Sessions 3–12) ---------- */
+  function svgWrap(w, h, body, maxw) { return '<svg viewBox="0,0,' + w + ',' + h + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:' + (maxw || w) + 'px;background:#fff;border:1px solid #E2E8F0;border-radius:8px">' + body + "</svg>"; }
+  function numIn(v, w) { var i = el("input", "num-input"); i.value = v; i.style.width = (w || 110) + "px"; i.inputMode = "numeric"; return i; }
+  function lab(t) { return el("span", "", t); }
+  function twoCol(host) { var wrap = el("div", "turtle-wrap"), l = el("div", ""), r = el("div", ""); wrap.appendChild(l); wrap.appendChild(r); host.appendChild(wrap); return [l, r]; }
+  var G = MK.group;
+
+  // Area model: <div data-areamodel="347,6"></div>
+  function areaModelW(host) {
+    var v = host.dataset.areamodel.split(","), a = numIn(v[0]), b = numIn(v[1], 80), row = el("div", "num-row"), pic = el("div", ""), out = el("div", "rt-result");
+    row.appendChild(a); row.appendChild(lab(" × ")); row.appendChild(b); host.appendChild(row); host.appendChild(pic); host.appendChild(out);
+    var parts = function (n) { var s = String(n), o = []; for (var i = 0; i < s.length; i++) if (s[i] !== "0") o.push(+s[i] * Math.pow(10, s.length - 1 - i)); return o; };
+    function draw() {
+      var A = Math.min(9999, Math.max(1, parseInt(a.value, 10) || 1)), B = Math.min(99, Math.max(1, parseInt(b.value, 10) || 1)), pa = parts(A), pb = parts(B);
+      var tot = pa.reduce(function (x, y) { return x + y; }, 0), ws = pa.map(function (p) { return Math.max(70, 460 * p / tot); }), sc = 460 / ws.reduce(function (x, y) { return x + y; }, 0);
+      var cols = ["#DBEAFE", "#FEF3C7", "#DCFCE7", "#FCE7F3"], h = "", x = 70, prods = [];
+      pa.forEach(function (p, i) {
+        var w = ws[i] * sc; h += '<text x="' + (x + w / 2) + '" y="30" text-anchor="middle" font-family="Georgia" font-size="16" font-weight="700" fill="#0F1B2D">' + G(p) + "</text>";
+        pb.forEach(function (q, j) {
+          var y = 40 + j * 66; prods.push(p * q);
+          h += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="60" fill="' + cols[i % 4] + '" stroke="#0F1B2D" stroke-width="2"/>';
+          h += '<text x="' + (x + w / 2) + '" y="' + (y + 36) + '" text-anchor="middle" font-family="Georgia" font-size="15" font-weight="700" fill="#0B7C78">' + G(p * q) + "</text>";
+          if (i === 0) h += '<text x="60" y="' + (y + 36) + '" text-anchor="end" font-family="Georgia" font-size="16" font-weight="700" fill="#0F1B2D">' + G(q) + "</text>";
+        });
+        x += w;
+      });
+      pic.innerHTML = svgWrap(560, 50 + 66 * pb.length, h, 520);
+      out.innerHTML = prods.map(G).join(" + ") + " = <b>" + G(A * B) + "</b>";
+    }
+    a.oninput = b.oninput = draw; draw();
+  }
+  // Times-table explorer: <div data-timesgrid></div>
+  function timesGrid(host) {
+    var t = el("table", "pv-table times"), out = el("div", "rt-result", "Click any square.");
+    var h = "<tr><th>×</th>"; for (var c = 1; c <= 10; c++) h += "<th>" + c + "</th>"; h += "</tr>";
+    for (var r = 1; r <= 10; r++) { h += "<tr><th>" + r + "</th>"; for (c = 1; c <= 10; c++) h += '<td data-r="' + r + '" data-c="' + c + '"></td>'; h += "</tr>"; }
+    t.innerHTML = h; host.appendChild(t); host.appendChild(out);
+    t.addEventListener("click", function (e) {
+      var td = e.target.closest("td"); if (!td) return; var r = +td.dataset.r, c = +td.dataset.c;
+      t.querySelectorAll("td").forEach(function (x) { var rr = +x.dataset.r, cc = +x.dataset.c; x.textContent = (rr <= r && cc <= c) ? rr * cc : ""; x.className = (rr <= r && cc <= c) ? (rr === r && cc === c ? "hl" : "on") : ""; });
+      var tip = r === c ? "a square number!" : (r * c === c * r ? "same as " + c + " × " + r + ": switch the order, same answer." : "");
+      out.innerHTML = "<b>" + r + " × " + c + " = " + r * c + "</b>. The shaded rectangle is " + r + " rows of " + c + ". " + tip + (c > 5 ? " Strategy: " + r + " × 5 = " + r * 5 + ", plus " + r + " × " + (c - 5) + " = " + r * (c - 5) + "." : "");
+    });
+  }
+  // Share it out: <div data-divider="23,4"></div>
+  function divider(host) {
+    var v = host.dataset.divider.split(","), n = numIn(v[0], 90), d = numIn(v[1], 70), row = el("div", "num-row"), pic = el("div", ""), out = el("div", "rt-result");
+    row.appendChild(n); row.appendChild(lab(" shared into ")); row.appendChild(d); row.appendChild(lab(" equal groups")); host.appendChild(row); host.appendChild(pic); host.appendChild(out);
+    function draw() {
+      var N = Math.min(60, Math.max(0, parseInt(n.value, 10) || 0)), D = Math.min(8, Math.max(1, parseInt(d.value, 10) || 1)), q = Math.floor(N / D), r = N % D;
+      var gw = Math.max(64, 18 + 14 * Math.ceil(q / 3)), h = "", x = 8;
+      for (var k = 0; k < D; k++) {
+        h += '<rect x="' + x + '" y="8" width="' + gw + '" height="74" rx="10" fill="#F1F5F9" stroke="#94A3B8"/>';
+        var per = Math.max(1, Math.floor((gw - 14) / 14));
+        for (var t = 0; t < q; t++) h += '<circle cx="' + (x + 14 + (t % per) * 14) + '" cy="' + (22 + Math.floor(t / per) * 14) + '" r="5" fill="#0EA5A0"/>';
+        x += gw + 10;
+      }
+      for (t = 0; t < r; t++) h += '<circle cx="' + (x + 12 + t * 16) + '" cy="45" r="6" fill="#DC2626"/>';
+      pic.innerHTML = svgWrap(x + Math.max(1, r) * 16 + 30, 92, h, 640);
+      out.innerHTML = G(N) + " ÷ " + D + " = <b>" + q + (r ? " R " + r : "") + "</b>. Each group gets " + q + (r ? ", and " + r + " " + (r === 1 ? "is" : "are") + " left over. The remainder is always less than " + D + "." : ". Nothing is left over.") + " Check: " + D + " × " + q + (r ? " + " + r : "") + " = " + N + ".";
+    }
+    n.oninput = d.oninput = draw; draw();
+  }
+  // Fraction comparer: <div data-fractions="2,3,3,4"></div>
+  function fractionsW(host) {
+    var v = host.dataset.fractions.split(","), ins = v.map(function (x) { return numIn(x, 64); }), row = el("div", "num-row"), pic = el("div", ""), out = el("div", "rt-result");
+    row.appendChild(ins[0]); row.appendChild(lab(" / ")); row.appendChild(ins[1]); row.appendChild(lab("   and   ")); row.appendChild(ins[2]); row.appendChild(lab(" / ")); row.appendChild(ins[3]);
+    host.appendChild(row); host.appendChild(pic); host.appendChild(out);
+    function bar(nu, de, y, col) { var h = "", w = 460 / de; for (var k = 0; k < de; k++) h += '<rect x="' + (10 + k * w) + '" y="' + y + '" width="' + w + '" height="36" fill="' + (k < nu ? col : "#fff") + '" stroke="#0F1B2D" stroke-width="1.5"/>'; return h + '<text x="485" y="' + (y + 25) + '" font-family="Georgia" font-size="18" font-weight="700" fill="#0F1B2D">' + nu + "/" + de + "</text>"; }
+    function draw() {
+      var a = Math.max(0, +ins[0].value || 0), b = Math.min(24, Math.max(1, +ins[1].value || 1)), c = Math.max(0, +ins[2].value || 0), d = Math.min(24, Math.max(1, +ins[3].value || 1));
+      a = Math.min(a, b); c = Math.min(c, d);
+      pic.innerHTML = svgWrap(540, 100, bar(a, b, 8, "#0EA5A0") + bar(c, d, 54, "#FB923C"), 540);
+      var l = a * d, r = c * b, sym = l === r ? "=" : (l > r ? ">" : "<");
+      out.innerHTML = "<b>" + a + "/" + b + " " + sym + " " + c + "/" + d + "</b>. Same-size pieces: " + a + "/" + b + " = " + (a * d) + "/" + (b * d) + " and " + c + "/" + d + " = " + (c * b) + "/" + (d * b) + "." + (l === r ? " They're <b>equivalent</b>: the same amount!" : "");
+    }
+    ins.forEach(function (i) { i.oninput = draw; }); draw();
+  }
+  // Decimal builder: <div data-decbuilder="3.405"></div>
+  function decBuilder(host) {
+    var digits = String(host.dataset.decbuilder || "0.000").replace(".", "").padStart(4, "0").slice(-4).split("").map(Number);
+    var names = ["Ones", "Tenths", "Hundredths", "Thousandths"], wrap = el("div", "pvb"), cols = el("div", "pvb-cols"), dEls = [];
+    names.forEach(function (nm, i) {
+      if (i === 1) cols.appendChild(el("div", "dec-dot", "."));
+      var c = el("div", "pvb-col " + (i === 0 ? "th" : "on")); c.appendChild(el("div", "lbl", nm));
+      var up = el("button", "", "▲"), dn = el("button", "", "▼"), dg = el("div", "dg", "0");
+      up.onclick = function () { digits[i] = (digits[i] + 1) % 10; draw(); }; dn.onclick = function () { digits[i] = (digits[i] + 9) % 10; draw(); };
+      c.appendChild(up); c.appendChild(dg); c.appendChild(dn); cols.appendChild(c); dEls.push(dg);
+    });
+    var out = el("div", "pvb-out"), vS = el("div", "v big-num"), vF = el("div", "v"), vE = el("div", "v");
+    out.appendChild(el("div", "k", "Decimal")); out.appendChild(vS); out.appendChild(el("div", "k", "Fraction")); out.appendChild(vF); out.appendChild(el("div", "k", "Expanded")); out.appendChild(vE);
+    wrap.appendChild(cols); wrap.appendChild(out); host.appendChild(wrap);
+    function draw() {
+      digits.forEach(function (d, i) { dEls[i].textContent = d; });
+      var thou = digits[0] * 1000 + digits[1] * 100 + digits[2] * 10 + digits[3];
+      vS.textContent = digits[0] + "." + digits.slice(1).join("");
+      vF.textContent = digits[0] + " and " + (thou % 1000) + "/1000";
+      var e = []; [1, 0.1, 0.01, 0.001].forEach(function (p, i) { if (digits[i]) e.push((digits[i] * p).toFixed(i)); });
+      vE.textContent = e.length ? e.join(" + ") : "0";
+    }
+    draw();
+  }
+  // Pattern machine: <div data-pattern="3,+,4"></div>  (start, op, step)
+  function patternW(host) {
+    var v = host.dataset.pattern.split(","), st = numIn(v[0], 80), op = el("select", ""), k = numIn(v[2], 80), row = el("div", "num-row"), out = el("div", ""), q = el("div", "rt-result");
+    op.innerHTML = '<option value="+">add</option><option value="×">multiply by</option><option value="−">subtract</option>'; op.value = v[1];
+    op.style.cssText = "font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px";
+    row.appendChild(lab("Start at ")); row.appendChild(st); row.appendChild(lab(", then ")); row.appendChild(op); row.appendChild(k); row.appendChild(lab(" each step"));
+    host.appendChild(row); host.appendChild(out); host.appendChild(q);
+    function draw() {
+      var a = parseInt(st.value, 10) || 0, s = parseInt(k.value, 10) || 0, vals = [a];
+      for (var i = 1; i < 8; i++) vals.push(op.value === "+" ? vals[i - 1] + s : op.value === "−" ? vals[i - 1] - s : vals[i - 1] * s);
+      out.innerHTML = '<table class="data-table"><tr><th>Step</th>' + vals.map(function (_, i) { return "<td class='n'>" + (i + 1) + "</td>"; }).join("") + "</tr><tr><th>Value</th>" + vals.map(function (x) { return "<td class='n'>" + G(x) + "</td>"; }).join("") + "</tr></table>";
+      q.innerHTML = op.value === "+" ? "Rule: start at " + a + ", add " + s + ". Step <i>n</i> = " + a + " + " + s + " × (<i>n</i> − 1). Step 20 = <b>" + G(a + s * 19) + "</b>." :
+        op.value === "−" ? "Rule: start at " + a + ", subtract " + s + ". Step 20 = <b>" + G(a - s * 19) + "</b>." : "Rule: start at " + a + ", multiply by " + s + " each time. It grows fast!";
+    }
+    st.oninput = k.oninput = op.onchange = draw; draw();
+  }
+  // Rectangle explorer: <div data-rect="6,4"></div>
+  function rectW(host) {
+    var v = host.dataset.rect.split(","), L = el("input", ""), W = el("input", ""), row = el("div", "num-row"), pic = el("div", ""), out = el("div", "rt-result");
+    [L, W].forEach(function (i, k) { i.type = "range"; i.min = 1; i.max = 12; i.value = v[k]; });
+    var lL = lab(""), lW = lab(""); row.appendChild(lab("Length ")); row.appendChild(L); row.appendChild(lL); row.appendChild(lab("   Width ")); row.appendChild(W); row.appendChild(lW);
+    host.appendChild(row); host.appendChild(pic); host.appendChild(out);
+    function draw() {
+      var l = +L.value, w = +W.value, u = 26, h = "";
+      for (var i = 0; i < l; i++) for (var j = 0; j < w; j++) h += '<rect x="' + (30 + i * u) + '" y="' + (16 + j * u) + '" width="' + u + '" height="' + u + '" fill="#DBEAFE" stroke="#93C5FD"/>';
+      h += '<rect x="30" y="16" width="' + l * u + '" height="' + w * u + '" fill="none" stroke="#0F1B2D" stroke-width="2.5"/>';
+      pic.innerHTML = svgWrap(30 + 12 * u + 20, 16 + 12 * u + 20, h, 360);
+      lL.textContent = " " + l + " cm"; lW.textContent = " " + w + " cm";
+      out.innerHTML = "Area = " + l + " × " + w + " = <b>" + l * w + " cm²</b> · Perimeter = 2 × (" + l + " + " + w + ") = <b>" + 2 * (l + w) + " cm</b>";
+    }
+    L.oninput = W.oninput = draw; draw();
+  }
+
   /* ---------- QR code for a page next to this one (e.g. quiz.html) ---------- */
   // <div data-qr-link="quiz.html"></div>  → QR + address of that page
   function qrLink(host) {
@@ -842,6 +1092,225 @@
     host.innerHTML = '<div class="hw-box"><div class="hw-qr">' + html + '</div><div class="hw-linkcol"><div class="expect">Scan or open on your device</div>' +
       '<a class="hw-url" target="_blank" rel="noopener" href="' + url + '">' + url + "</a>" +
       '<div class="btn-row"><a class="btn teal" target="_blank" rel="noopener" href="' + url + '">Open quiz ↗</a></div></div></div>';
+  }
+
+
+  /* ---------- Chance simulator: <div data-sim='{"kind":"bag","items":[["red",9,"#DC2626"],["blue",9,"#2563EB"]]}'></div>  or {"kind":"dice","sides":6} ---------- */
+  function simW(host) {
+    var cfg = JSON.parse(host.dataset.sim), items;
+    if (cfg.kind === "dice") { items = []; for (var f = 1; f <= (cfg.sides || 6); f++) items.push([String(f), 1, ["#0EA5A0", "#FB923C", "#3776AB", "#9966FF", "#16A34A", "#DC2626", "#CA8A04", "#0F1B2D"][(f - 1) % 8]]); }
+    else items = cfg.items;
+    var tot = items.reduce(function (a, it) { return a + it[1]; }, 0), counts = items.map(function () { return 0; }), n = 0, last = "";
+    var wrap = el("div", "sim-wrap"), left = el("div", ""), right = el("div", "");
+    var btns = el("div", "btn-row");
+    [1, 10, 100].forEach(function (k) { var b = el("button", "btn teal", (cfg.kind === "dice" ? "Roll " : "Draw ") + k); b.onclick = function () { go(k); }; btns.appendChild(b); });
+    var rs = el("button", "btn ghost", "Reset"); rs.onclick = function () { counts = counts.map(function () { return 0; }); n = 0; last = ""; draw(); }; btns.appendChild(rs);
+    var info = el("div", "rt-result", ""), ai = el("div", "demo-note", "");
+    left.appendChild(btns); left.appendChild(info); left.appendChild(ai);
+    var pic = el("div", ""); right.appendChild(pic);
+    wrap.appendChild(left); wrap.appendChild(right); host.appendChild(wrap);
+    function pick() { var r = Math.random() * tot, a = 0; for (var i = 0; i < items.length; i++) { a += items[i][1]; if (r < a) return i; } return items.length - 1; }
+    function go(k) { for (var j = 0; j < k; j++) { var i = pick(); counts[i]++; last = items[i][0]; } n += k; draw(); }
+    function draw() {
+      var W = 320, H = 210, L = 34, B = 170, T = 16, mx = Math.max(5, Math.max.apply(null, counts)), bw = (W - L - 8) / items.length;
+      var s = '<svg viewBox="0,0,' + W + "," + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:340px;background:#fff;border:1px solid #E2E8F0;border-radius:8px">';
+      items.forEach(function (it, i) {
+        var h = counts[i] / mx * (B - T), x = L + i * bw + bw * 0.15;
+        s += '<rect x="' + x.toFixed(1) + '" y="' + (B - h).toFixed(1) + '" width="' + (bw * 0.7).toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + it[2] + '"/>';
+        s += '<text x="' + (x + bw * 0.35).toFixed(1) + '" y="' + (B - h - 4).toFixed(1) + '" text-anchor="middle" font-family="Helvetica" font-size="12" fill="#0F1B2D">' + counts[i] + "</text>";
+        s += '<text x="' + (x + bw * 0.35).toFixed(1) + '" y="' + (B + 16) + '" text-anchor="middle" font-family="Helvetica" font-size="12" fill="#0F1B2D">' + esc(it[0]) + "</text>";
+        if (n) { var e = it[1] / tot * n / mx * (B - T); s += '<path d="M' + (x - 3).toFixed(1) + "," + (B - e).toFixed(1) + "L" + (x + bw * 0.7 + 3).toFixed(1) + "," + (B - e).toFixed(1) + '" stroke="#0F1B2D" stroke-width="2" stroke-dasharray="4 3"/>'; }
+      });
+      s += '<path d="M' + L + "," + T + "L" + L + "," + B + "L" + (W - 4) + "," + B + '" fill="none" stroke="#0F1B2D" stroke-width="2"/></svg>';
+      pic.innerHTML = s;
+      info.innerHTML = n ? "Total: <b>" + n + "</b>" + (last ? " · last one: <b>" + esc(last) + "</b>" : "") + "<br>" + items.map(function (it, i) { return esc(it[0]) + ": " + counts[i] + "/" + n + " ≈ <b>" + Math.round(counts[i] / n * 100) + "%</b> (chance " + it[1] + "/" + tot + ")"; }).join("<br>") : "Press a button to start. The dashed lines show what the chance predicts.";
+      if (n) { var best = 0; counts.forEach(function (c, i) { if (c > counts[best]) best = i; }); ai.innerHTML = "<strong>What a data-only AI would say:</strong> \"Next one is probably <b>" + esc(items[best][0]) + "</b>, " + Math.round(counts[best] / n * 100) + "% sure.\" More data → closer to the true chance."; }
+      else ai.innerHTML = "<strong>AI idea:</strong> an AI that has only seen the data guesses from the counts. Watch how its guess changes after 1, 10 and 100 draws.";
+    }
+    draw();
+  }
+
+  /* ---------- Fraction walker on a 480-step stage: <div data-walker='{"width":480,"fracs":["1/2","1/3","1/4"]}'></div> ---------- */
+  function walkerW(host) {
+    var cfg = JSON.parse(host.dataset.walker), Wd = cfg.width || 480, pos = 0, target = null;
+    var stage = el("div", ""), row = el("div", "btn-row"), info = el("div", "rt-result", "");
+    (cfg.fracs || []).forEach(function (f) {
+      var b = el("button", "btn teal", "Walk " + f); b.onclick = function () { var p = f.split("/"); target = Wd * +p[0] / +p[1]; move(target, "Target " + f + " of " + Wd + " = " + Wd + " × " + f + " = <b>" + fmt(target) + "</b> steps."); }; row.appendChild(b);
+    });
+    var inp = el("input", "num-input"); inp.placeholder = "your steps"; inp.style.width = "130px"; inp.inputMode = "decimal";
+    var go = el("button", "btn", "Walk my steps"); go.onclick = function () { var v = parseFloat(inp.value); if (isNaN(v)) return; move(v, target === null ? "You walked <b>" + fmt(v) + "</b> steps." : "You walked <b>" + fmt(v) + "</b>. Target <b>" + fmt(target) + "</b>. Off by <b>" + fmt(Math.abs(v - target)) + "</b> steps."); };
+    var rs = el("button", "btn ghost", "Back to start"); rs.onclick = function () { move(0, "Back at the left edge (x = −" + Wd / 2 + ")."); };
+    row.appendChild(inp); row.appendChild(go); row.appendChild(rs);
+    host.appendChild(stage); host.appendChild(row); host.appendChild(info);
+    function fmt(v) { return Math.round(v * 100) / 100; }
+    function svg(p) {
+      var W = 520, X = function (v) { return 20 + v / Wd * 480; }, s = '<svg viewBox="0,0,' + W + ',120" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:560px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px">';
+      for (var g = 0; g <= Wd; g += Wd / 12) s += '<path d="M' + X(g).toFixed(1) + ',20L' + X(g).toFixed(1) + ',92" stroke="#CBD5E1"/>';
+      [[0, "0"], [Wd / 4, "1/4"], [Wd / 3, "1/3"], [Wd / 2, "1/2"], [Wd, "1"]].forEach(function (t) { s += '<text x="' + X(t[0]).toFixed(1) + '" y="110" text-anchor="middle" font-family="Helvetica" font-size="12" fill="#475569">' + t[1] + "</text>"; });
+      s += '<path d="M20,92L500,92" stroke="#0F1B2D" stroke-width="2"/>';
+      if (target !== null) s += '<path d="M' + X(target).toFixed(1) + ',16L' + X(target).toFixed(1) + ',92" stroke="#DC2626" stroke-width="2" stroke-dasharray="5 4"/><text x="' + X(target).toFixed(1) + '" y="13" text-anchor="middle" font-family="Helvetica" font-size="11" fill="#DC2626">target</text>';
+      s += '<g transform="translate(' + X(p).toFixed(1) + ',70)"><circle r="12" fill="#0EA5A0"/><circle cx="-4" cy="-3" r="2" fill="#fff"/><circle cx="4" cy="-3" r="2" fill="#fff"/><path d="M-6,8L-8,22M6,8L8,22" stroke="#0EA5A0" stroke-width="3"/></g></svg>';
+      return s;
+    }
+    function move(to, msg) {
+      var from = pos, t0 = null;
+      function step(ts) { if (!t0) t0 = ts; var k = Math.min(1, (ts - t0) / 600); pos = from + (to - from) * k; stage.innerHTML = svg(pos); if (k < 1) requestAnimationFrame(step); }
+      requestAnimationFrame(step); info.innerHTML = msg + " Scratch x = −" + Wd / 2 + " + " + fmt(to) + " = <b>" + fmt(to - Wd / 2) + "</b>.";
+    }
+    stage.innerHTML = svg(0); info.innerHTML = "The stage is " + Wd + " steps wide. Start: left edge.";
+  }
+
+
+  /* ---------- small helpers for the S9–S12 widgets ---------- */
+  function svgWrap(W, H, body, maxw) { return '<svg viewBox="0,0,' + W + "," + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:' + (maxw || W) + 'px;background:#fff;border:1px solid #E2E8F0;border-radius:8px">' + body + "</svg>"; }
+  function txt(x, y, t, o) { o = o || {}; return '<text x="' + x + '" y="' + y + '" text-anchor="' + (o.a || "middle") + '" font-family="Helvetica,Arial" font-size="' + (o.s || 12) + '" font-weight="' + (o.w || 400) + '" fill="' + (o.c || "#0F1B2D") + '">' + t + "</text>"; }
+
+  /* ---------- Guess my number (halving search): <div data-guess='{"max":100}'></div> ---------- */
+  function guessW(host) {
+    var cfg = JSON.parse(host.dataset.guess), max = cfg.max || 100, secret, lo, hi, tries, hist;
+    var pic = el("div", ""), row = el("div", "btn-row"), info = el("div", "rt-result", "");
+    var inp = el("input", "num-input"); inp.placeholder = "1 to " + max; inp.style.width = "120px"; inp.inputMode = "numeric";
+    var go = el("button", "btn teal", "Guess"), mid = el("button", "btn", "Halfway hint"), nw = el("button", "btn ghost", "New number");
+    row.appendChild(inp); row.appendChild(go); row.appendChild(mid); row.appendChild(nw);
+    host.appendChild(row); host.appendChild(pic); host.appendChild(info);
+    function reset() { secret = 1 + Math.floor(Math.random() * max); lo = 1; hi = max; tries = 0; hist = []; inp.value = ""; draw(); info.innerHTML = "I'm thinking of a number from 1 to " + max + ". Best plan: always guess the middle of what's left."; }
+    function draw() {
+      var W = 520, X = function (v) { return 20 + (v - 1) / (max - 1) * 480; }, b = '<rect x="20" y="30" width="480" height="22" fill="#F1F5F9"/>';
+      b += '<rect x="' + X(lo).toFixed(1) + '" y="30" width="' + Math.max(3, X(hi) - X(lo)).toFixed(1) + '" height="22" fill="#99F6E4"/>';
+      hist.forEach(function (h, i) { b += '<path d="M' + X(h).toFixed(1) + ',24L' + X(h).toFixed(1) + ',58" stroke="' + (h === secret ? "#16A34A" : "#DC2626") + '" stroke-width="2"/>' + txt(X(h).toFixed(1), 18, i + 1, { s: 10, c: "#475569" }); });
+      b += txt(20, 74, "1", { s: 11 }) + txt(500, 74, max, { s: 11 }) + txt(260, 74, "still possible: " + lo + " to " + hi + " (" + (hi - lo + 1) + " numbers)", { s: 12, w: 700, c: "#0E7490" });
+      pic.innerHTML = svgWrap(W, 82, b, 560);
+    }
+    go.onclick = function () {
+      var g = parseInt(inp.value, 10); if (isNaN(g) || g < 1 || g > max) return; tries++; hist.push(g);
+      if (g === secret) { lo = hi = g; draw(); info.innerHTML = "🎉 <b>" + g + "</b> is right! You took <b>" + tries + "</b> guess" + (tries > 1 ? "es" : "") + ". Halving always finishes in " + Math.ceil(Math.log(max + 1) / Math.LN2) + " or fewer."; return; }
+      if (g < secret) lo = Math.max(lo, g + 1); else hi = Math.min(hi, g - 1);
+      draw(); info.innerHTML = "Guess " + tries + ": <b>" + g + "</b> is too <b>" + (g < secret ? "low" : "high") + "</b>. Numbers left: " + (hi - lo + 1) + ".";
+      inp.value = ""; inp.focus();
+    };
+    inp.onkeydown = function (e) { if (e.key === "Enter") go.onclick(); };
+    mid.onclick = function () { inp.value = Math.floor((lo + hi) / 2); };
+    nw.onclick = reset; reset();
+  }
+
+  /* ---------- Card sorter: <div data-sorter='{"nums":[7,3,9,1,5]}'></div> ---------- */
+  function sorterW(host) {
+    var cfg = JSON.parse(host.dataset.sorter), start = cfg.nums.slice(), a, sw, cmp, sel = -1, busy = false;
+    var cardsBox = el("div", ""), row = el("div", "btn-row"), info = el("div", "rt-result", "");
+    cardsBox.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin:10px 0";
+    var auto = el("button", "btn teal", "Watch bubble sort"), rs = el("button", "btn ghost", "Shuffle back");
+    row.appendChild(auto); row.appendChild(rs); host.appendChild(cardsBox); host.appendChild(row); host.appendChild(info);
+    function sorted() { for (var i = 1; i < a.length; i++) if (a[i - 1] > a[i]) return false; return true; }
+    function draw(hl) {
+      cardsBox.innerHTML = "";
+      a.forEach(function (v, i) {
+        var c = el("button", "", String(v)); var on = (hl && hl.indexOf(i) >= 0) || i === sel;
+        c.style.cssText = "width:54px;height:70px;border-radius:8px;font:700 22px Helvetica;border:2px solid " + (on ? "#FB923C" : "#0F1B2D") + ";background:" + (on ? "#FFEDD5" : "#fff") + ";cursor:pointer";
+        c.onclick = function () { if (busy) return; if (sel < 0) { sel = i; draw(); return; } if (Math.abs(sel - i) === 1) { var t = a[sel]; a[sel] = a[i]; a[i] = t; sw++; } sel = -1; draw(); msg(); };
+        cardsBox.appendChild(c);
+      });
+    }
+    function msg() { info.innerHTML = (sorted() ? "✅ Sorted smallest → biggest! " : "Click two cards that are next to each other to swap them. ") + "Swaps: <b>" + sw + "</b>" + (cmp ? " · comparisons: <b>" + cmp + "</b>" : ""); }
+    function reset() { a = start.slice(); sw = 0; cmp = 0; sel = -1; busy = false; draw(); msg(); }
+    auto.onclick = function () {
+      if (busy) return; a = start.slice(); sw = 0; cmp = 0; busy = true; var steps = [];
+      var b = a.slice(); for (var p = 0; p < b.length - 1; p++) for (var i = 0; i < b.length - 1 - p; i++) { var s2 = b[i] > b[i + 1]; steps.push([i, s2]); if (s2) { var t = b[i]; b[i] = b[i + 1]; b[i + 1] = t; } }
+      var k = 0; (function tick() {
+        if (k >= steps.length) { busy = false; draw(); msg(); return; }
+        var i = steps[k][0]; cmp++; if (steps[k][1]) { var t = a[i]; a[i] = a[i + 1]; a[i + 1] = t; sw++; }
+        draw([i, i + 1]); msg(); k++; setTimeout(tick, 420);
+      })();
+    };
+    rs.onclick = reset; reset();
+  }
+
+  /* ---------- Reaction timer with outliers: <div data-react='{}'></div> ---------- */
+  function reactW(host) {
+    var times = [], state = "idle", t0 = 0, timer = null;
+    var pad = el("button", "", "Press START"); pad.style.cssText = "width:100%;max-width:520px;height:120px;border-radius:12px;border:none;font:700 22px Helvetica;color:#fff;background:#0F1B2D;cursor:pointer";
+    var row = el("div", "btn-row"), add = el("button", "btn", "Add a sneeze (slow) trial"), rs = el("button", "btn ghost", "Clear");
+    row.appendChild(add); row.appendChild(rs);
+    var pic = el("div", ""), info = el("div", "rt-result", "");
+    host.appendChild(pad); host.appendChild(row); host.appendChild(pic); host.appendChild(info);
+    function set(st, label, col) { state = st; pad.textContent = label; pad.style.background = col; }
+    pad.onclick = function () {
+      if (state === "idle" || state === "done") { set("wait", "Wait for GREEN…", "#DC2626"); timer = setTimeout(function () { set("go", "CLICK!", "#16A34A"); t0 = performance.now(); }, 1200 + Math.random() * 2200); }
+      else if (state === "wait") { clearTimeout(timer); set("done", "Too early! Press to try again", "#B45309"); }
+      else if (state === "go") { var ms = Math.round(performance.now() - t0); times.push(ms); set("done", ms + " ms · press for another try", "#0F1B2D"); draw(); }
+    };
+    add.onclick = function () { times.push(1500 + Math.round(Math.random() * 500)); draw(); };
+    rs.onclick = function () { times = []; draw(); };
+    function stats(v) { var s = v.slice().sort(function (x, y) { return x - y; }), n = s.length, mid = n % 2 ? s[(n - 1) / 2] : Math.round((s[n / 2 - 1] + s[n / 2]) / 2), mean = Math.round(v.reduce(function (x, y) { return x + y; }, 0) / n); return { s: s, mid: mid, mean: mean }; }
+    function draw() {
+      if (!times.length) { pic.innerHTML = ""; info.innerHTML = "Press START, wait for green, then click as fast as you can. Do 5 tries. Your times appear as dots."; return; }
+      var st = stats(times), mx = Math.max(800, Math.max.apply(null, times) * 1.05), X = function (v) { return 20 + v / mx * 480; }, b = '<path d="M20,60L500,60" stroke="#0F1B2D" stroke-width="2"/>';
+      for (var g = 0; g <= mx; g += mx > 1200 ? 500 : 200) b += '<path d="M' + X(g).toFixed(1) + ',56L' + X(g).toFixed(1) + ',64" stroke="#0F1B2D"/>' + txt(X(g).toFixed(1), 78, g, { s: 10, c: "#475569" });
+      var out = times.filter(function (v) { return v > st.mid * 2; });
+      times.forEach(function (v, i) { var o = v > st.mid * 2; b += '<circle cx="' + X(v).toFixed(1) + '" cy="' + (50 - (i % 3) * 9) + '" r="6" fill="' + (o ? "#DC2626" : "#0EA5A0") + '" opacity=".85"/>'; });
+      b += '<path d="M' + X(st.mid).toFixed(1) + ',14L' + X(st.mid).toFixed(1) + ',60" stroke="#7C3AED" stroke-width="2" stroke-dasharray="4 3"/>' + txt(X(st.mid).toFixed(1), 11, "middle", { s: 10, c: "#7C3AED", w: 700 });
+      pic.innerHTML = svgWrap(520, 86, b, 560);
+      var clean = times.filter(function (v) { return v <= st.mid * 2; });
+      info.innerHTML = "Times (ms): " + st.s.join(", ") + "<br>Middle value: <b>" + st.mid + "</b> · fair share (mean): <b>" + st.mean + "</b>" +
+        (out.length ? "<br><span style='color:#DC2626'><b>Outlier" + (out.length > 1 ? "s" : "") + ":</b> " + out.join(", ") + " (more than double the middle).</span> Mean without " + (out.length > 1 ? "them" : "it") + ": <b>" + Math.round(clean.reduce(function (x, y) { return x + y; }, 0) / clean.length) + "</b>. The middle barely moves, the mean jumps!" : "");
+    }
+    draw();
+  }
+
+  /* ---------- Nearest-neighbour classifier: <div data-knn='{"x":"…","y":"…","pts":[[x,y,"label"],…],"cols":{"label":"#hex"}}'></div> ---------- */
+  function knnW(host) {
+    var cfg = JSON.parse(host.dataset.knn), k = 1, q = null, N = cfg.n || 10;
+    var row = el("div", "btn-row"), b1 = el("button", "btn teal", "1 neighbour"), b3 = el("button", "btn", "3 neighbours (vote)");
+    row.appendChild(b1); row.appendChild(b3); var pic = el("div", ""), info = el("div", "rt-result", "");
+    host.appendChild(row); host.appendChild(pic); host.appendChild(info);
+    b1.onclick = function () { k = 1; draw(); }; b3.onclick = function () { k = 3; draw(); };
+    var u = 32, O = 40;
+    function X(v) { return O + v * u; } function Y(v) { return O + (N - v) * u; }
+    function draw() {
+      var b = "";
+      for (var i = 0; i <= N; i++) { b += '<path d="M' + X(i) + "," + Y(0) + "L" + X(i) + "," + Y(N) + 'M' + X(0) + "," + Y(i) + "L" + X(N) + "," + Y(i) + '" stroke="#E2E8F0"/>' + txt(X(i), Y(0) + 15, i, { s: 10, c: "#475569" }) + (i ? txt(X(0) - 8, Y(i) + 4, i, { s: 10, c: "#475569", a: "end" }) : ""); }
+      b += txt(X(N / 2), Y(0) + 32, cfg.x, { s: 12, w: 700 }) + '<text transform="translate(12,' + Y(N / 2) + ') rotate(-90)" text-anchor="middle" font-family="Helvetica" font-size="12" font-weight="700" fill="#0F1B2D">' + cfg.y + "</text>";
+      var near = [];
+      if (q) {
+        near = cfg.pts.map(function (p, i) { return { i: i, d: Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]) }; }).sort(function (a, c) { return a.d - c.d || a.i - c.i; }).slice(0, k);
+        near.forEach(function (n) { var p = cfg.pts[n.i]; b += '<path d="M' + X(q[0]) + "," + Y(q[1]) + "L" + X(p[0]) + "," + Y(q[1]) + "L" + X(p[0]) + "," + Y(p[1]) + '" fill="none" stroke="#FB923C" stroke-width="2.5" stroke-dasharray="5 3"/>'; });
+      }
+      cfg.pts.forEach(function (p) { b += '<circle cx="' + X(p[0]) + '" cy="' + Y(p[1]) + '" r="9" fill="' + cfg.cols[p[2]] + '" stroke="#fff" stroke-width="2"/>'; });
+      if (q) b += '<rect x="' + (X(q[0]) - 9) + '" y="' + (Y(q[1]) - 9) + '" width="18" height="18" fill="#0F1B2D"/>' + txt(X(q[0]), Y(q[1]) + 4, "?", { s: 13, w: 700, c: "#fff" });
+      var lg = 0; Object.keys(cfg.cols).forEach(function (l) { b += '<circle cx="' + (X(N) + 22) + '" cy="' + (Y(N) + 8 + lg * 22) + '" r="7" fill="' + cfg.cols[l] + '"/>' + txt(X(N) + 34, Y(N) + 12 + lg * 22, l, { a: "start", s: 12 }); lg++; });
+      pic.innerHTML = svgWrap(X(N) + 110, Y(0) + 42, b, 520);
+      var svgEl = pic.querySelector("svg"); svgEl.style.cursor = "crosshair";
+      svgEl.onclick = function (e) { var r = svgEl.getBoundingClientRect(), sx = (e.clientX - r.left) / r.width * (X(N) + 110), sy = (e.clientY - r.top) / r.height * (Y(0) + 42); var gx = Math.round((sx - O) / u), gy = Math.round(N - (sy - O) / u); if (gx < 0 || gy < 0 || gx > N || gy > N) return; q = [gx, gy]; draw(); };
+      if (!q) { info.innerHTML = "Click any grid point to drop a new mystery item (■). The AI finds its nearest neighbour by counting grid steps (across + up)."; return; }
+      var votes = {}; near.forEach(function (n) { var l = cfg.pts[n.i][2]; votes[l] = (votes[l] || 0) + 1; });
+      var best = Object.keys(votes).sort(function (a, c) { return votes[c] - votes[a]; })[0];
+      info.innerHTML = "Mystery item at (" + q[0] + ", " + q[1] + "). " + near.map(function (n) { var p = cfg.pts[n.i]; return p[2] + " at (" + p[0] + ", " + p[1] + ") is " + n.d + " steps away"; }).join("; ") + ".<br><b>AI label: " + best + "</b>" + (k > 1 ? " (vote " + Object.keys(votes).map(function (l) { return l + " " + votes[l]; }).join(" vs ") + ", so " + votes[best] + "/" + k + " agree)" : "") + ".";
+    }
+    draw();
+  }
+
+  /* ---------- Rock-paper-scissors bot that learns your habits: <div data-rps='{}'></div> ---------- */
+  function rpsW(host) {
+    var M = ["rock", "paper", "scissors"], E = { rock: "✊", paper: "✋", scissors: "✌️" }, beats = { rock: "paper", paper: "scissors", scissors: "rock" };
+    var counts, after, last, score;
+    var row = el("div", "btn-row"); M.forEach(function (m) { var b = el("button", "btn teal", E[m] + " " + m); b.onclick = function () { play(m); }; row.appendChild(b); });
+    var rs = el("button", "btn ghost", "Reset the AI"); rs.onclick = reset; row.appendChild(rs);
+    var out = el("div", "rt-result", ""), table = el("div", "");
+    host.appendChild(row); host.appendChild(out); host.appendChild(table);
+    function reset() { counts = { rock: 0, paper: 0, scissors: 0 }; after = {}; M.forEach(function (m) { after[m] = { rock: 0, paper: 0, scissors: 0 }; }); last = null; score = { ai: 0, you: 0, tie: 0 }; out.innerHTML = "Play at least 20 rounds. The AI keeps a tally of what you play after each move, and predicts your next one from the tally."; drawT(); }
+    function predict() { var t = last ? after[last] : counts, best = "rock"; M.forEach(function (m) { if (t[m] > t[best]) best = m; }); var tot = t.rock + t.paper + t.scissors; return { m: tot ? best : M[Math.floor(Math.random() * 3)], tot: tot, n: t[best] }; }
+    function play(me) {
+      var p = predict(), ai = beats[p.m], res = ai === me ? "tie" : beats[me] === ai ? "ai" : "you";
+      score[res]++; counts[me]++; if (last) after[last][me]++; last = me;
+      var n = score.ai + score.you + score.tie;
+      out.innerHTML = "AI predicted <b>" + p.m + "</b>" + (p.tot ? " (" + p.n + " of your last " + p.tot + " moves after this one)" : " (no data yet: random)") + ", so it played " + E[ai] + " <b>" + ai + "</b>. You played " + E[me] + " " + me + ": <b>" + (res === "ai" ? "AI wins" : res === "you" ? "you win" : "tie") + "</b>.<br>After " + n + " rounds the AI has won <b>" + score.ai + "/" + n + "</b>. Random guessing wins about 1/3.";
+      drawT();
+    }
+    function drawT() {
+      var h = '<table style="border-collapse:collapse;font:13px Helvetica;margin-top:8px"><tr><th style="padding:4px 8px;text-align:left">After you play…</th>' + M.map(function (m) { return '<th style="padding:4px 8px">' + E[m] + " next</th>"; }).join("") + "</tr>";
+      M.forEach(function (r) { h += '<tr><td style="padding:4px 8px;border-top:1px solid #E2E8F0">' + E[r] + " " + r + "</td>" + M.map(function (m) { var v = after[r][m], mx = Math.max(after[r].rock, after[r].paper, after[r].scissors); return '<td style="padding:4px 8px;text-align:center;border-top:1px solid #E2E8F0;' + (v && v === mx ? "background:#FFEDD5;font-weight:700" : "") + '">' + v + "</td>"; }).join("") + "</tr>"; });
+      table.innerHTML = h + "</table>";
+    }
+    reset();
   }
 
   function init() {
@@ -860,6 +1329,23 @@
     document.querySelectorAll("[data-turtle]").forEach(turtleBox);
     document.querySelectorAll("[data-graphmaker]").forEach(graphMaker);
     document.querySelectorAll("[data-findstar]").forEach(findStar);
+    document.querySelectorAll("[data-areamodel]").forEach(areaModelW);
+    document.querySelectorAll("[data-timesgrid]").forEach(timesGrid);
+    document.querySelectorAll("[data-divider]").forEach(divider);
+    document.querySelectorAll("[data-fractions]").forEach(fractionsW);
+    document.querySelectorAll("[data-decbuilder]").forEach(decBuilder);
+    document.querySelectorAll("[data-pattern]").forEach(patternW);
+    document.querySelectorAll("[data-rect]").forEach(rectW);
+    document.querySelectorAll("[data-turtle-pic]").forEach(turtlePic);
+    document.querySelectorAll("[data-mcset]").forEach(mcSet);
+    document.querySelectorAll("[data-twentyfour]").forEach(twentyFour);
+    document.querySelectorAll("[data-sim]").forEach(simW);
+    document.querySelectorAll("[data-walker]").forEach(walkerW);
+    document.querySelectorAll("[data-guess]").forEach(guessW);
+    document.querySelectorAll("[data-sorter]").forEach(sorterW);
+    document.querySelectorAll("[data-react]").forEach(reactW);
+    document.querySelectorAll("[data-knn]").forEach(knnW);
+    document.querySelectorAll("[data-rps]").forEach(rpsW);
     var mount = document.getElementById("mathRoot");
     if (mount && mount.dataset.homework) MK.homeworkPage(mount.dataset.homework);
     if (mount && mount.dataset.quiz) MK.quizPage(mount.dataset.quiz);

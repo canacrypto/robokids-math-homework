@@ -122,3 +122,29 @@ a.dot:hover .dot-circle{transform:translateY(-3px) scale(1.04);box-shadow:0 8px 
 .q-vis svg,.opt-text svg{display:block}
 .vm-flex{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
 @media (max-width:760px){.turtle-wrap{grid-template-columns:1fr}}
+
+/* 4A widgets */
+.dec-dot{font-family:Georgia,serif;font-size:48px;font-weight:700;align-self:center;padding-top:30px;color:var(--navy,#0F1B2D)}
+.pv-table.times td{min-width:34px;height:30px;font-size:14px;cursor:pointer;padding:2px}
+.pv-table.times td.on{background:#DBEAFE} .pv-table.times td.hl{background:var(--teal,#0EA5A0);color:#fff}
+.pv-table.times th{font-size:13px}
+
+/* multiple-choice set, 24 point, picture cards (4B sessions 3–12) */
+.mcs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.mcs-card{border:1px solid var(--line,#E2E8F0);border-radius:10px;padding:10px 12px;background:#fff}
+.mcs-q{font-family:Georgia,serif;font-size:16px;margin-bottom:6px}
+.mcs-opts{display:flex;flex-wrap:wrap;gap:6px}
+.mcs-opt{font:inherit;font-size:14px;padding:5px 10px;border:1px solid #CBD5E1;border-radius:7px;background:#F8FAFC;cursor:pointer}
+.mcs-opt span{font-weight:700;color:#64748B;margin-right:2px}
+.mcs-opt.right{background:#DCFCE7;border-color:#16A34A}.mcs-opt.wrong{background:#FEE2E2;border-color:#DC2626}
+.mcs-fb{font-size:13px;margin-top:5px;min-height:1px}
+.tf-cards{display:flex;gap:14px;margin:6px 0 12px}
+.tf-card{width:74px;height:100px;border-radius:10px;background:#fff;border:2px solid #0F1B2D;display:flex;align-items:center;justify-content:center;font:700 38px Georgia,serif;color:#9966FF;box-shadow:0 3px 8px rgba(0,0,0,.12)}
+.src-pic{max-width:100%;max-height:300px;border-radius:8px;border:1px solid #E2E8F0}
+.pic-row{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.mcs-vis{margin:4px 0 6px}.mcs-vis img,.mcs-vis svg{max-height:150px;max-width:100%}
+.mcs-grid.one{grid-template-columns:1fr}
+
+/* 4C sessions 3–8: chance simulator, fraction walker */
+.sim-wrap{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
+@media (max-width:760px){.sim-wrap{grid-template-columns:1fr}}
