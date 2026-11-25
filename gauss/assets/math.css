@@ -1,0 +1,174 @@
+/* School Math add-ons on top of RoboKids rk.css. Aliases map onto the rk.css palette. */
+:root{
+  --line: var(--border, #DCE0E8); --teal-dark: var(--teal-deep, #0B7C78);
+  --radius: 8px; --shadow: var(--shadow-md, 0 4px 14px rgba(15,27,45,.12));
+  --red-soft: #FEE2E2; --blue: #3776AB; --blue-soft: #EEF4FB;
+}
+.big-num{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:1.15em;white-space:nowrap}
+.num-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.num-input{font:inherit;font-size:20px;font-family:Georgia,serif;padding:8px 12px;border:2px solid var(--line);border-radius:8px;width:230px}
+.num-input:focus{outline:none;border-color:var(--teal)}
+.num-input.ok{border-color:var(--green);background:var(--green-soft)}
+.num-input.no{border-color:var(--red);background:var(--red-soft)}
+.mfb{margin-top:10px;font-size:15px;border-radius:6px;padding:0}
+.mfb.ok,.mfb.hint,.mfb.reveal{padding:10px 14px}
+.mfb.ok{background:var(--green-soft);color:#14532D}
+.mfb.hint{background:var(--gold-soft);color:#713F12}
+.mfb.reveal{background:var(--red-soft);color:#7F1D1D}
+.mfb .why{margin-top:6px;color:var(--ink)}
+.q-vis{margin:6px 0 10px}
+.hard-tag{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--red);border:1px solid var(--red);border-radius:4px;padding:1px 6px}
+.q.is-right .quiz-q-num{background:var(--green)}
+.q.is-wrong .quiz-q-num{background:var(--red)}
+.q .quiz-option.picked{border-color:var(--navy);background:#EEF2F8}
+.score-card .code-box{justify-content:flex-start}
+.q.locked .quiz-option{cursor:default}
+
+/* result code */
+.code-box{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin:14px auto 4px}
+.code-text{font-family:"SF Mono",Consolas,monospace;font-size:17px;font-weight:700;background:var(--ink);color:#fff;padding:10px 14px;border-radius:8px;user-select:all}
+.timer{position:fixed;top:76px;right:18px;z-index:25;background:var(--ink);color:#fff;font-weight:800;font-family:"SF Mono",Consolas,monospace;padding:6px 12px;border-radius:8px;display:none}
+.timer.show{display:block} .timer.low{background:var(--red)}
+
+/* place-value chart */
+.pv-table{border-collapse:collapse;margin:6px 0;background:#fff;font-size:15px}
+.pv-table th,.pv-table td{border:1px solid #CBD5E1;text-align:center;padding:6px 10px}
+.pv-table th{font-size:11.5px;font-weight:700;color:var(--ink-soft);background:#F8FAFC;line-height:1.2}
+.pv-table th.period{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#fff}
+.pv-table th.period.th{background:var(--blue)} .pv-table th.period.on{background:var(--teal)}
+.pv-table td{font-family:Georgia,serif;font-size:28px;font-weight:700;min-width:62px}
+.pv-table td.hl{background:var(--gold-soft);color:#92400E}
+.pv-table td.gap{border-left:4px solid var(--ink)}
+
+/* place-value builder */
+.pvb{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.pvb-cols{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.pvb-col{display:flex;flex-direction:column;align-items:center;gap:4px;width:86px}
+.pvb-col.th{--c:var(--blue)} .pvb-col.on{--c:var(--teal)}
+.pvb-col .lbl{font-size:10.5px;font-weight:700;color:var(--ink-soft);text-align:center;height:28px;line-height:1.2}
+.pvb-col button{width:44px;height:30px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;font-size:14px;color:var(--c)}
+.pvb-col button:hover{border-color:var(--c)}
+.pvb-col .dg{font-family:Georgia,serif;font-size:40px;font-weight:700;color:var(--c);width:64px;text-align:center;border:2px solid var(--c);border-radius:8px;background:#fff}
+.pvb-gap{width:10px}
+.pvb-out{margin-top:14px;display:grid;grid-template-columns:120px 1fr;gap:6px 12px;font-size:16px}
+.pvb-out .k{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--ink-soft);text-transform:uppercase;padding-top:3px}
+.pvb-out .v{font-weight:600}
+.pvb-target{margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#E6F7F6;border-radius:8px;padding:10px 12px}
+.pvb-target .t{font-weight:700}
+
+/* rounding tool */
+.rt{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.rt-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rt-controls select{font:inherit;font-size:15px;padding:8px;border:1px solid var(--line);border-radius:8px}
+.rt-result{font-size:18px;margin-top:6px}
+.rt-result b{color:var(--teal-dark)}
+
+/* data table */
+.data-table{border-collapse:collapse;background:#fff;font-size:15.5px;margin:6px 0}
+.data-table th,.data-table td{border:1px solid var(--line);padding:7px 14px;text-align:left}
+.data-table th{background:#F8FAFC;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft)}
+.data-table td.n{text-align:right;font-family:Georgia,serif;font-weight:700}
+.src-note{font-size:12px;color:var(--ink-soft)}
+
+/* quiz walkthrough in the deck */
+.qr-item{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin:10px 0}
+.qr-item .q-text{margin:2px 0 6px}
+.qr-ans{display:none;margin-top:8px;background:var(--green-soft);border-radius:6px;padding:8px 12px;font-size:14.5px}
+.qr-item.open .qr-ans{display:block}
+.qr-opts{font-size:15px;color:var(--ink-soft)}
+.qr-opts span{margin-right:16px;white-space:nowrap}
+
+/* rk.css provides .hw-box / .hw-url / .hw-qr */
+.code-sample{white-space:nowrap;font-family:"SF Mono",Consolas,monospace;font-weight:700;background:var(--navy,#0F1B2D);color:#fff;padding:3px 8px;border-radius:4px;font-size:13px}
+.pv-table td{color:var(--navy,#0F1B2D)}
+.mq{margin-top:4px}
+
+/* phones: give the title room (math pages only) */
+@media (max-width:600px){
+  .topbar{padding:0 12px}
+  .topbar-home,.topbar-crumb{display:none}
+  .logo-wrap{padding:4px 8px;height:36px;margin-right:10px}
+  .logo-wrap img{height:20px}
+  .page-hero::before{width:60px;height:26px}
+  .card{padding:22px 18px}
+  .num-input{width:100%}
+}
+
+/* All Sessions page: one colored circle per session, opening its whole deck */
+.dots{display:flex;flex-wrap:wrap;gap:34px;padding:10px 4px 4px}
+.dot{display:flex;flex-direction:column;align-items:center;gap:10px;width:140px;text-align:center;text-decoration:none;color:var(--navy,#0F1B2D)}
+.dot:hover{text-decoration:none}
+.dot-circle{width:96px;height:96px;border-radius:50%;background:var(--c);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:40px;font-weight:700;box-shadow:0 4px 14px rgba(15,27,45,.15);transition:transform .15s,box-shadow .15s}
+a.dot:hover .dot-circle{transform:translateY(-3px) scale(1.04);box-shadow:0 8px 20px rgba(15,27,45,.22)}
+.dot-title{font-family:Georgia,serif;font-size:15px;font-weight:700;line-height:1.25}
+.dot.soon{cursor:default;color:var(--ink-light,#8A92A0)}
+.big-num u,.rule-card-title u{text-decoration-thickness:4px;text-decoration-color:#DC2626;text-underline-offset:5px}
+.round-mini .diagram{height:104px;width:100%;margin:2px 0 6px}
+.rm-label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal,#0EA5A0);margin-top:4px}
+
+/* V-Math widgets */
+.rot-row{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.rot-box{background:#F8FAFC;border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:150px;min-height:150px}
+.rot-arrow{font-size:28px;color:var(--teal,#0EA5A0)}
+.sdk{display:grid;gap:0;border:3px solid var(--navy,#0F1B2D);width:max-content;margin:6px 0 4px}
+.sdk-cell{width:46px;height:46px;border:1px solid #94A3B8;text-align:center;font-family:Georgia,serif;font-size:24px;font-weight:700;color:#2563EB;background:#fff;outline:none}
+.sdk-cell.given{color:var(--navy,#0F1B2D);background:#F1F5F9}
+.sdk-cell.br{border-right:3px solid var(--navy,#0F1B2D)} .sdk-cell.bb{border-bottom:3px solid var(--navy,#0F1B2D)}
+.sdk-cell:focus{background:#FEF9C3} .sdk-cell.bad{background:#FEE2E2;color:var(--red)} .sdk-cell.good{background:#DCFCE7}
+.turtle-wrap{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+.turtle-ta{width:100%;min-height:120px;font-family:"SF Mono",Consolas,monospace;font-size:15px;background:var(--code-bg,#1B2538);color:#C9D1D9;border:none;border-radius:6px;padding:12px 14px;resize:vertical}
+.turtle-canvas svg{width:300px;height:300px;border-radius:8px;display:block}
+.turtle-code{font-family:"SF Mono",Consolas,monospace;background:var(--code-bg,#1B2538);color:#C9D1D9;padding:10px 14px;border-radius:6px;font-size:15px;display:inline-block;margin:4px 0}
+.q-vis svg,.opt-text svg{display:block}
+.vm-flex{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+@media (max-width:760px){.turtle-wrap{grid-template-columns:1fr}}
+
+/* 4A widgets */
+.dec-dot{font-family:Georgia,serif;font-size:48px;font-weight:700;align-self:center;padding-top:30px;color:var(--navy,#0F1B2D)}
+.pv-table.times td{min-width:34px;height:30px;font-size:14px;cursor:pointer;padding:2px}
+.pv-table.times td.on{background:#DBEAFE} .pv-table.times td.hl{background:var(--teal,#0EA5A0);color:#fff}
+.pv-table.times th{font-size:13px}
+
+/* multiple-choice set, 24 point, picture cards (4B sessions 3–12) */
+.mcs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.mcs-card{border:1px solid var(--line,#E2E8F0);border-radius:10px;padding:10px 12px;background:#fff}
+.mcs-q{font-family:Georgia,serif;font-size:16px;margin-bottom:6px}
+.mcs-opts{display:flex;flex-wrap:wrap;gap:6px}
+.mcs-opt{font:inherit;font-size:14px;padding:5px 10px;border:1px solid #CBD5E1;border-radius:7px;background:#F8FAFC;cursor:pointer}
+.mcs-opt span{font-weight:700;color:#64748B;margin-right:2px}
+.mcs-opt.right{background:#DCFCE7;border-color:#16A34A}.mcs-opt.wrong{background:#FEE2E2;border-color:#DC2626}
+.mcs-fb{font-size:13px;margin-top:5px;min-height:1px}
+.tf-cards{display:flex;gap:14px;margin:6px 0 12px}
+.tf-card{width:74px;height:100px;border-radius:10px;background:#fff;border:2px solid #0F1B2D;display:flex;align-items:center;justify-content:center;font:700 38px Georgia,serif;color:#9966FF;box-shadow:0 3px 8px rgba(0,0,0,.12)}
+.src-pic{max-width:100%;max-height:300px;border-radius:8px;border:1px solid #E2E8F0}
+.pic-row{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.mcs-vis{margin:4px 0 6px}.mcs-vis img,.mcs-vis svg{max-height:150px;max-width:100%}
+.mcs-grid.one{grid-template-columns:1fr}
+
+/* 4C sessions 3–8: chance simulator, fraction walker */
+.sim-wrap{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
+@media (max-width:760px){.sim-wrap{grid-template-columns:1fr}}
+
+/* 9C · Python in the browser */
+.py-editor{width:100%;box-sizing:border-box;font:14px/1.5 "JetBrains Mono",Menlo,Consolas,monospace;background:#0F1B2D;color:#E2E8F0;border:none;border-radius:10px;padding:14px 16px;margin:10px 0 6px;tab-size:4;resize:vertical}
+.py-out{font:13px/1.5 "JetBrains Mono",Menlo,Consolas,monospace;background:#F8FAFC;border:1px solid #E2E8F0;border-left:4px solid #94A3B8;border-radius:8px;padding:10px 14px;margin:8px 0;white-space:pre-wrap;min-height:22px}
+.py-out.ok{border-left-color:#16A34A;background:#F0FDF4}.py-out.err{border-left-color:#DC2626;background:#FEF2F2}
+.code-block{font:14px/1.55 "JetBrains Mono",Menlo,Consolas,monospace;background:#0F1B2D;color:#E2E8F0;border-radius:10px;padding:14px 18px;white-space:pre;overflow-x:auto;margin:10px 0}
+
+.la-wrap{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin-top:8px}
+.la-left{flex:1 1 300px;min-width:280px}.la-right{flex:0 0 auto}
+.la-editor{width:100%;box-sizing:border-box;font:15px/1.6 "JetBrains Mono",Menlo,Consolas,monospace;background:#0F1B2D;color:#E2E8F0;border:none;border-radius:10px;padding:12px 14px;margin:6px 0;resize:vertical}
+.la-list{margin-top:6px;font-size:13px}.la-row{padding:3px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.la-row.err{color:#B91C1C}
+.la-row code{font-size:13px}.la-info{color:#64748B}.la-dot{width:12px;height:12px;border-radius:50%;flex:0 0 12px}
+.la-svg{display:block;max-width:100%;height:auto;border-radius:10px}
+.desmos-frame{width:100%;height:440px;border:1px solid #CBD5E1;border-radius:12px;background:#fff}
+.la-left .py-out:empty{display:none}
+.la-editor{max-height:320px;overflow:auto}
+.spec-field{margin:8px 0}.spec-label{display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:3px}
+.spec-ta{width:100%;box-sizing:border-box;font:14px/1.5 Inter,Arial,sans-serif;border:1px solid #CBD5E1;border-radius:8px;padding:8px 10px;resize:vertical}
+.spec-ta:focus{outline:2px solid #0EA5A4;border-color:#0EA5A4}
+.gq-img{display:block;max-width:100%;max-height:50vh;width:auto;height:auto;margin:4px 0 12px;border:1px solid #E2E8F0;border-radius:8px;background:#fff;padding:6px}
+.quiz-options.gq-opts{display:flex !important;flex-direction:row !important;flex-wrap:wrap;gap:12px}
+.quiz-options.gq-opts .quiz-option{flex:0 0 auto !important;width:auto !important;min-width:72px;justify-content:center;padding:10px 18px}
+.quiz-options.gq-opts .opt-text{display:none}
+.q-text img,.why img{display:block;margin:8px 0;max-width:100%;height:auto}.why .src{margin-top:6px;color:#475569}
